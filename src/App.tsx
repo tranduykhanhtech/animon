@@ -23,6 +23,7 @@ function App() {
   const [sellingAnimon, setSellingAnimon] = useState<string | null>(null);
   const [sellPrice, setSellPrice] = useState<string>('');
   const [showProfile, setShowProfile] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Battle Invite State
   const [incomingInvite, setIncomingInvite] = useState<{ inviterId: string, inviterUsername: string, roomId: string } | null>(null);
@@ -39,8 +40,15 @@ function App() {
       setSession(session);
     });
 
+    const installHandler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', installHandler);
+
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('beforeinstallprompt', installHandler);
     }
   }, [setSession]);
 
@@ -115,6 +123,15 @@ function App() {
     }
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
@@ -129,6 +146,37 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#FFF8F0] text-stone-700 font-sans selection:bg-rose-200">
+      
+      {/* Install PWA Prompt */}
+      <AnimatePresence>
+        {deferredPrompt && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-4 left-4 right-4 z-50 bg-white p-4 rounded-3xl shadow-xl border-4 border-indigo-100 flex items-center justify-between gap-2 max-w-lg mx-auto"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
+                <Sparkles className="w-6 h-6 text-indigo-500" />
+              </div>
+              <div>
+                <h4 className="font-bold text-stone-800 leading-tight">Cài đặt Ứng dụng</h4>
+                <p className="text-[11px] text-stone-500 font-medium leading-tight mt-0.5">Thêm vào màn hình chính để chơi mượt hơn!</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setDeferredPrompt(null)} className="p-2 text-stone-400 hover:bg-stone-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+              <button onClick={handleInstallClick} className="px-5 py-2 bg-indigo-500 text-white font-bold rounded-xl whitespace-nowrap shadow-sm">
+                Cài đặt
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[#FFF8F0]/90 backdrop-blur-md border-b-4 border-amber-100 mb-6">
         <div className="max-w-5xl mx-auto px-4 h-20 flex items-center justify-between">
