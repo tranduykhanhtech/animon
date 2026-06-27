@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Camera, X, Aperture, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { isAnimal, loadAIModel } from '../utils/aiDetector';
+
 interface CameraBtnProps {
   onCapture: (file: File, imageUrl: string) => void;
 }
@@ -12,10 +14,16 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const startCamera = async () => {
     setIsOpen(true);
     setError(null);
+    setIsAnalyzing(false);
+    
+    // Tải mô hình AI ngầm
+    loadAIModel();
+    
     try {
       let mediaStream: MediaStream;
       try {
@@ -54,7 +62,7 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
     setIsOpen(false);
   }, [stream]);
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -64,15 +72,31 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const fileName = `animon_${Date.now()}.jpg`;
-            const file = new File([blob], fileName, { type: 'image/jpeg' });
-            const imageUrl = URL.createObjectURL(blob);
-            onCapture(file, imageUrl);
-            stopCamera();
+        setIsAnalyzing(true);
+        setError(null);
+        
+        try {
+          const result = await isAnimal(canvas);
+          
+          if (!result.isAnimal) {
+            setError(`Phát hiện "${result.topGuess}"! Vui lòng chỉ chụp động vật.`);
+            setIsAnalyzing(false);
+            return;
           }
-        }, 'image/jpeg', 0.9);
+          
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const fileName = `animon_${Date.now()}.jpg`;
+              const file = new File([blob], fileName, { type: 'image/jpeg' });
+              const imageUrl = URL.createObjectURL(blob);
+              onCapture(file, imageUrl);
+              stopCamera();
+            }
+          }, 'image/jpeg', 0.9);
+        } catch (err) {
+          setError("Lỗi khi phân tích hình ảnh.");
+          setIsAnalyzing(false);
+        }
       }
     }
   };
@@ -153,11 +177,25 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={capturePhoto}
-                    className="w-20 h-20 bg-white/40 border-4 border-white rounded-full flex items-center justify-center backdrop-blur-md shadow-lg"
+                    disabled={isAnalyzing}
+                    className={`w-20 h-20 bg-white/40 border-4 border-white rounded-full flex items-center justify-center backdrop-blur-md shadow-lg ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <div className="w-14 h-14 bg-gradient-to-tr from-rose-400 to-orange-400 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] border-2 border-white" />
+                    <div className={`w-14 h-14 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] border-2 border-white ${isAnalyzing ? 'bg-stone-400' : 'bg-gradient-to-tr from-rose-400 to-orange-400'}`} />
                   </motion.button>
                 </div>
+                
+                {/* AI Analyzing Overlay */}
+                <AnimatePresence>
+                  {isAnalyzing && (
+                    <motion.div
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-30 rounded-[2.5rem]"
+                    >
+                      <div className="w-16 h-16 border-4 border-white border-t-rose-500 rounded-full animate-spin mb-4" />
+                      <span className="text-white font-black text-xl tracking-wider drop-shadow-md">ĐANG PHÂN TÍCH ADN...</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </motion.div>

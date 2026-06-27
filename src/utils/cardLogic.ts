@@ -94,7 +94,7 @@ export function generateCardStats(file: File): CardStats {
   };
   
   const baseValue = (power + energy) * 2; // base from stats
-  const value = Math.floor(baseValue * rarityMultiplier[rarity]);
+  const value = Math.max(1, Math.floor((baseValue * rarityMultiplier[rarity]) / 10));
 
   // 4. Hidden Ability
   let hidden_ability: HiddenAbility = 'None';
