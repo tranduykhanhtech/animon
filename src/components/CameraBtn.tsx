@@ -3,9 +3,11 @@ import { Camera, X, Aperture, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { isAnimal, loadAIModel } from '../utils/aiDetector';
+import { useGameStore } from '../store/useGameStore';
+import { getDistanceFromLatLonInM } from '../utils/geo';
 
 interface CameraBtnProps {
-  onCapture: (file: File, imageUrl: string, species: string) => void;
+  onCapture: (file: File, imageUrl: string, species: string, lat?: number, lng?: number) => void;
 }
 
 export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
@@ -15,6 +17,8 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const { inventory } = useGameStore();
 
   const startCamera = async () => {
     setIsOpen(true);
@@ -84,15 +88,49 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
             return;
           }
           
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const fileName = `animon_${Date.now()}.jpg`;
-              const file = new File([blob], fileName, { type: 'image/jpeg' });
-              const imageUrl = URL.createObjectURL(blob);
-              onCapture(file, imageUrl, result.topGuess);
-              stopCamera();
-            }
-          }, 'image/jpeg', 0.9);
+          // Geolocation check
+          if (!navigator.geolocation) {
+            setError('Trình duyệt không hỗ trợ GPS. Vui lòng thử trình duyệt khác.');
+            setIsAnalyzing(false);
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              
+              // Distance check
+              if (inventory.length > 0) {
+                // Find most recent animon with GPS data
+                const lastAnimon = inventory.find(a => a.latitude && a.longitude);
+                if (lastAnimon && lastAnimon.latitude && lastAnimon.longitude) {
+                  const dist = getDistanceFromLatLonInM(latitude, longitude, lastAnimon.latitude, lastAnimon.longitude);
+                  if (dist < 5) {
+                    setError(`Bạn cần di chuyển thêm ${Math.ceil(5 - dist)}m nữa để bắt Animon mới! Vui lòng không đứng một chỗ.`);
+                    setIsAnalyzing(false);
+                    return;
+                  }
+                }
+              }
+
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  const fileName = `animon_${Date.now()}.jpg`;
+                  const file = new File([blob], fileName, { type: 'image/jpeg' });
+                  const imageUrl = URL.createObjectURL(blob);
+                  onCapture(file, imageUrl, result.topGuess, latitude, longitude);
+                  stopCamera();
+                }
+              }, 'image/jpeg', 0.9);
+            },
+            (err) => {
+              console.error(err);
+              setError('Lấy vị trí thất bại. Vui lòng cấp quyền Định vị (Location) cho trình duyệt.');
+              setIsAnalyzing(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+          
         } catch (err) {
           setError("Lỗi khi phân tích hình ảnh.");
           setIsAnalyzing(false);

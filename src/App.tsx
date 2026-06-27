@@ -9,6 +9,7 @@ import { BattleArena } from './components/BattleArena';
 import { FriendsTab } from './components/FriendsTab';
 import { Leaderboard } from './components/Leaderboard';
 import { MatchHistory } from './components/MatchHistory';
+import { MapTab } from './components/MapTab';
 import { useGameStore } from './store/useGameStore';
 import { useBattleStore } from './store/useBattleStore';
 import { generateCardStats } from './utils/cardLogic';
@@ -18,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
   const { session, user, username, inventory, coins, isLoading, setSession, signOut, addAnimon, listAnimonForSale, fetchFriends } = useGameStore();
-  const [newlyCaught, setNewlyCaught] = useState<{ file: File, imageUrl: string, name: string, stats: any } | null>(null);
+  const [newlyCaught, setNewlyCaught] = useState<{ file: File, imageUrl: string, name: string, stats: any, lat?: number, lng?: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentTab, setCurrentTab] = useState<TabType>('collection');
   const [sellingAnimon, setSellingAnimon] = useState<string | null>(null);
@@ -90,7 +91,7 @@ function App() {
     };
   }, [user]);
 
-  const handleCapture = (file: File, imageUrl: string, species: string) => {
+  const handleCapture = (file: File, imageUrl: string, species: string, lat?: number, lng?: number) => {
     // Convert e.g. "golden retriever, retriever" to "Golden Retriever" for display
     const formattedName = species.split(',')[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const stats = generateCardStats(file, species);
@@ -98,7 +99,9 @@ function App() {
       file,
       imageUrl,
       name: formattedName,
-      stats
+      stats,
+      lat,
+      lng
     });
   };
 
@@ -110,7 +113,9 @@ function App() {
           name: newlyCaught.name,
           stats: newlyCaught.stats
         },
-        newlyCaught.file
+        newlyCaught.file,
+        newlyCaught.lat,
+        newlyCaught.lng
       );
       
       setIsSaving(false);
@@ -314,6 +319,7 @@ function App() {
         {currentTab === 'battle' && <BattleArena />}
         {currentTab === 'friends' && <FriendsTab />}
         {currentTab === 'leaderboard' && <Leaderboard />}
+        {currentTab === 'map' && <MapTab />}
 
         <BottomNav currentTab={currentTab} onChange={setCurrentTab} />
       </main>

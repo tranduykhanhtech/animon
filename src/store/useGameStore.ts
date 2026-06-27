@@ -12,6 +12,8 @@ export interface Animon {
   createdAt: number;
   is_trading?: boolean;
   is_showcased?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Trade {
@@ -75,7 +77,7 @@ interface GameState {
   rejectFriendRequest: (id: string) => Promise<boolean>;
   unfriend: (id: string) => Promise<boolean>;
   toggleShowcase: (animonId: string, currentStatus: boolean) => Promise<{ success: boolean; message: string }>;
-  addAnimon: (animon: Omit<Animon, 'id' | 'imageUrl' | 'createdAt'>, file: File) => Promise<boolean>;
+  addAnimon: (animon: Omit<Animon, 'id' | 'imageUrl' | 'createdAt'>, file: File, lat?: number, lng?: number) => Promise<boolean>;
   listAnimonForSale: (animonId: string, price: number) => Promise<boolean>;
   quickSellAnimon: (animonId: string) => Promise<boolean>;
   buyAnimon: (tradeId: string) => Promise<boolean>;
@@ -149,6 +151,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         createdAt: new Date(row.created_at).getTime(),
         is_trading: row.is_trading,
         is_showcased: row.is_showcased,
+        latitude: row.latitude,
+        longitude: row.longitude,
         stats: {
           element: row.element as any,
           rarity: row.rarity as any,
@@ -164,7 +168,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  addAnimon: async (animonData, file) => {
+  addAnimon: async (animonData, file, lat, lng) => {
     const user = get().user;
     if (!user) return false;
 
@@ -197,6 +201,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         seed: animonData.stats.seed,
         value: animonData.stats.value,
         hidden_ability: animonData.stats.hidden_ability,
+        latitude: lat,
+        longitude: lng,
       };
 
       const { data, error: insertError } = await supabase

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Home, Store, Swords, Users, Trophy } from 'lucide-react';
+import { Home, Store, Swords, Users, Trophy, Map } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 
-export type TabType = 'collection' | 'market' | 'battle' | 'friends' | 'leaderboard';
+export type TabType = 'collection' | 'market' | 'battle' | 'friends' | 'leaderboard' | 'map';
 
 interface BottomNavProps {
   currentTab: TabType;
@@ -15,6 +15,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChange }) =>
 
   const tabs = [
     { id: 'collection', icon: Home, label: 'Túi Đồ' },
+    { id: 'map', icon: Map, label: 'Bản Đồ' },
     { id: 'market', icon: Store, label: 'Chợ' },
     { id: 'battle', icon: Swords, label: 'Chiến Đấu' },
     { id: 'friends', icon: Users, label: 'Bạn Bè' },
