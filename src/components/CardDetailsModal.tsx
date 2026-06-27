@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flame, Droplet, Leaf, Zap, Mountain, ShieldAlert, Swords, Heart, Activity } from 'lucide-react';
-import type { Animon } from '../store/useGameStore';
+import { X, Flame, Droplet, Leaf, Zap, Mountain, ShieldAlert, Swords, Heart, Activity, Star } from 'lucide-react';
+import { useGameStore, type Animon } from '../store/useGameStore';
 import { Card } from './Card';
 
 interface Props {
@@ -31,6 +31,9 @@ const getAbilityDescription = (ability: string) => {
 };
 
 export const CardDetailsModal: React.FC<Props> = ({ animon, onClose }) => {
+  const { user, toggleShowcase } = useGameStore();
+  const [isToggling, setIsToggling] = React.useState(false);
+
   if (!animon) return null;
 
   const elementInfo = getElementDescription(animon.stats.element);
@@ -130,6 +133,34 @@ export const CardDetailsModal: React.FC<Props> = ({ animon, onClose }) => {
                 </div>
               )}
             </div>
+
+            {/* Showcase Toggle */}
+            {user?.id === animon.owner_id && !animon.is_trading && (
+              <div className="mt-6">
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setIsToggling(true);
+                    const { success, message } = await toggleShowcase(animon.id, !!animon.is_showcased);
+                    setIsToggling(false);
+                    if (!success) alert(message);
+                    else {
+                      // Cập nhật local state temporarily for UI feedback
+                      animon.is_showcased = !animon.is_showcased;
+                    }
+                  }}
+                  disabled={isToggling}
+                  className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${
+                    animon.is_showcased
+                      ? 'bg-amber-100 text-amber-600 hover:bg-amber-200 border-2 border-amber-200'
+                      : 'bg-stone-100 text-stone-500 hover:bg-stone-200 border-2 border-stone-200'
+                  }`}
+                >
+                  <Star className={`w-6 h-6 ${animon.is_showcased ? 'fill-amber-500 text-amber-500' : ''}`} />
+                  {animon.is_showcased ? 'Đang Trưng Bày' : 'Trưng Bày Animon'}
+                </button>
+              </div>
+            )}
 
           </div>
         </motion.div>

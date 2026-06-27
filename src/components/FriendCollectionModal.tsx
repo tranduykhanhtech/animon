@@ -23,6 +23,7 @@ export const FriendCollectionModal: React.FC<Props> = ({ friendId, friendName, o
         .from('animons')
         .select('*')
         .eq('owner_id', friendId)
+        .eq('is_showcased', true)
         .order('created_at', { ascending: false });
 
       if (data && !error) {
@@ -34,6 +35,7 @@ export const FriendCollectionModal: React.FC<Props> = ({ friendId, friendName, o
           imageUrl: row.image_url,
           createdAt: new Date(row.created_at).getTime(),
           is_trading: row.is_trading,
+          is_showcased: row.is_showcased,
           stats: {
             element: row.element,
             rarity: row.rarity,
@@ -65,12 +67,12 @@ export const FriendCollectionModal: React.FC<Props> = ({ friendId, friendName, o
             {/* Header */}
             <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-3xl shadow-lg border-4 border-indigo-100">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <PawPrint className="w-6 h-6 text-indigo-500" />
+                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center border-2 border-amber-200">
+                  <PawPrint className="w-6 h-6 text-amber-500" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-stone-800">Bộ Sưu Tập của {friendName}</h2>
-                  <p className="text-stone-500 font-bold text-sm">{collection.length} Animon</p>
+                  <h2 className="text-xl font-black text-stone-800">Tủ Trưng Bày của {friendName}</h2>
+                  <p className="text-stone-500 font-bold text-sm">{collection.length} / 5 Animon</p>
                 </div>
               </div>
               <button 
@@ -88,9 +90,9 @@ export const FriendCollectionModal: React.FC<Props> = ({ friendId, friendName, o
                 <p className="text-white font-bold">Đang tải bộ sưu tập...</p>
               </div>
             ) : collection.length === 0 ? (
-              <div className="bg-white/90 p-10 rounded-3xl text-center shadow-xl">
+              <div className="bg-white/90 p-10 rounded-3xl text-center shadow-xl border-4 border-amber-50">
                 <h3 className="text-2xl font-bold text-stone-700 mb-2">Trống trơn!</h3>
-                <p className="text-stone-500">{friendName} chưa bắt được Animon nào cả.</p>
+                <p className="text-stone-500">{friendName} chưa trưng bày Animon nào cả.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center pb-10">

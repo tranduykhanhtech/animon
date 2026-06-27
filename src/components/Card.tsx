@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { Animon } from '../store/useGameStore';
-import { Flame, Droplet, Leaf, Zap, Mountain } from 'lucide-react';
+import { Flame, Droplet, Leaf, Zap, Mountain, Star } from 'lucide-react';
 
 interface CardProps {
   animon: Animon;
@@ -44,7 +44,7 @@ export const Card: React.FC<CardProps> = ({ animon, onClick, disableHover }) => 
       onClick={onClick}
       whileHover={disableHover ? {} : { scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      className={`relative w-[240px] min-h-[336px] h-max rounded-xl p-2.5 cursor-pointer transition-shadow duration-300 shadow-xl bg-[#fcd34d] flex-shrink-0`}
+      className={`relative w-[240px] min-h-[326px] h-max rounded-xl p-2.5 cursor-pointer transition-shadow duration-300 shadow-xl bg-[#fcd34d] flex-shrink-0`}
     >
       {/* Inner coloured background */}
       <div className={`relative h-full w-full rounded-lg flex flex-col p-2 ${innerBg} shadow-inner overflow-hidden border-2 border-amber-300/30`}>
@@ -59,15 +59,20 @@ export const Card: React.FC<CardProps> = ({ animon, onClick, disableHover }) => 
               Cấp độ {rarityStars[stats.rarity]}
             </span>
           </div>
-          <div className="w-6 h-6 rounded-full bg-white/70 shadow-sm flex items-center justify-center border border-white/50">
-            <ElementIcon element={stats.element} className="w-3.5 h-3.5 text-stone-800" />
+          {animon.is_showcased && (
+            <div className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-white shadow-md border-2 border-amber-300 flex items-center justify-center">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500 drop-shadow-sm" />
+            </div>
+          )}
+          <div className="bg-white/30 rounded-full p-1.5 shadow-sm backdrop-blur-sm border border-white/40">
+            <ElementIcon element={stats.element} className="w-4 h-4 text-stone-800 drop-shadow-sm" />
           </div>
         </div>
 
         {/* Holographic Image Frame */}
-        <div className="relative w-full rounded-sm overflow-hidden border-[4px] border-[#fbbf24] bg-stone-100 shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
+        <div className="relative w-full aspect-[4/3] rounded-sm overflow-hidden border-[4px] border-[#fbbf24] bg-stone-100 shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
           {imageUrl ? (
-             <img src={imageUrl} alt={name} className="w-full h-auto object-cover" />
+             <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
           ) : (
              <div className="w-full aspect-video flex items-center justify-center text-stone-400 font-medium text-xs">No Image</div>
           )}

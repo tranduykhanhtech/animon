@@ -11,6 +11,7 @@ export interface Animon {
   stats: CardStats; // We will flat map this to the DB later but keep it nested here for convenience
   createdAt: number;
   is_trading?: boolean;
+  is_showcased?: boolean;
 }
 
 export interface Trade {
@@ -73,6 +74,7 @@ interface GameState {
   acceptFriendRequest: (id: string) => Promise<boolean>;
   rejectFriendRequest: (id: string) => Promise<boolean>;
   unfriend: (id: string) => Promise<boolean>;
+  toggleShowcase: (animonId: string, currentStatus: boolean) => Promise<{ success: boolean; message: string }>;
   addAnimon: (animon: Omit<Animon, 'id' | 'imageUrl' | 'createdAt'>, file: File) => Promise<boolean>;
   listAnimonForSale: (animonId: string, price: number) => Promise<boolean>;
   quickSellAnimon: (animonId: string) => Promise<boolean>;
@@ -145,6 +147,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         name: row.name,
         imageUrl: row.image_url,
         createdAt: new Date(row.created_at).getTime(),
+        is_trading: row.is_trading,
+        is_showcased: row.is_showcased,
         stats: {
           element: row.element as any,
           rarity: row.rarity as any,
@@ -411,6 +415,32 @@ export const useGameStore = create<GameState>((set, get) => ({
       return true;
     }
     return false;
+  },
+
+  toggleShowcase: async (animonId: string, currentStatus: boolean) => {
+    const user = get().user;
+    if (!user) return { success: false, message: 'Chưa đăng nhập' };
+
+    const inventory = get().inventory;
+    
+    // Check limit if trying to showcase
+    if (!currentStatus) {
+      const showcasedCount = inventory.filter(a => a.is_showcased).length;
+      if (showcasedCount >= 5) {
+        return { success: false, message: 'Bạn chỉ có thể trưng bày tối đa 5 Animon!' };
+      }
+    }
+
+    const { error } = await supabase
+      .from('animons')
+      .update({ is_showcased: !currentStatus })
+      .eq('id', animonId);
+
+    if (!error) {
+      get().fetchInventory(); // Reload inventory
+      return { success: true, message: currentStatus ? 'Đã gỡ khỏi tủ kính.' : 'Đã đưa vào tủ kính trưng bày!' };
+    }
+    return { success: false, message: 'Có lỗi xảy ra khi cập nhật tủ kính.' };
   },
 
   listAnimonForSale: async (animonId, price) => {
