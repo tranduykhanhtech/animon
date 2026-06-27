@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CameraBtn } from './components/CameraBtn';
 import { Card } from './components/Card';
+import { CardDetailsModal } from './components/CardDetailsModal';
 import { AuthScreen } from './components/AuthScreen';
 import { BottomNav, type TabType } from './components/BottomNav';
 import { Marketplace } from './components/Marketplace';
@@ -25,6 +26,7 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
+  const [viewingAnimon, setViewingAnimon] = useState<any>(null);
 
   // Battle Invite State
   const [incomingInvite, setIncomingInvite] = useState<{ inviterId: string, inviterUsername: string, roomId: string } | null>(null);
@@ -284,7 +286,7 @@ function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 justify-items-center">
                   {inventory.map((animon) => (
                     <div key={animon.id} className="relative group">
-                      <Card animon={animon as any} />
+                      <Card animon={animon as any} onClick={() => setViewingAnimon(animon)} />
                       
                       {!animon.is_trading ? (
                         <button 
@@ -597,6 +599,8 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CardDetailsModal animon={viewingAnimon} onClose={() => setViewingAnimon(null)} />
     </div>
   );
 }

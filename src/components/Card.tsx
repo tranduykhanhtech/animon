@@ -6,6 +6,7 @@ import { Flame, Droplet, Leaf, Zap, Mountain } from 'lucide-react';
 interface CardProps {
   animon: Animon;
   onClick?: () => void;
+  disableHover?: boolean;
 }
 
 const elementThemes: Record<string, string> = {
@@ -34,16 +35,15 @@ const ElementIcon = ({ element, className }: { element: string, className?: stri
   }
 };
 
-export const Card: React.FC<CardProps> = ({ animon, onClick }) => {
+export const Card: React.FC<CardProps> = ({ animon, onClick, disableHover }) => {
   const { name, imageUrl, stats } = animon;
   const innerBg = elementThemes[stats.element] || elementThemes.Grass;
 
   return (
     <motion.div
       onClick={onClick}
-      whileHover={{ scale: 1.05, rotate: -1 }}
-      whileTap={{ scale: 0.95 }}
-      // Yellow outer border characteristic of Pokemon cards
+      whileHover={disableHover ? {} : { scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       className={`relative w-[240px] min-h-[336px] h-max rounded-xl p-2.5 cursor-pointer transition-shadow duration-300 shadow-xl bg-[#fcd34d] flex-shrink-0`}
     >
       {/* Inner coloured background */}
