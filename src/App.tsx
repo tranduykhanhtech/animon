@@ -6,6 +6,8 @@ import { BottomNav, type TabType } from './components/BottomNav';
 import { Marketplace } from './components/Marketplace';
 import { BattleArena } from './components/BattleArena';
 import { FriendsTab } from './components/FriendsTab';
+import { Leaderboard } from './components/Leaderboard';
+import { MatchHistory } from './components/MatchHistory';
 import { useGameStore } from './store/useGameStore';
 import { useBattleStore } from './store/useBattleStore';
 import { generateCardStats } from './utils/cardLogic';
@@ -217,13 +219,12 @@ function App() {
         )}
 
         {currentTab === 'market' && <Marketplace />}
-        
         {currentTab === 'battle' && <BattleArena />}
-
         {currentTab === 'friends' && <FriendsTab />}
-      </main>
+        {currentTab === 'leaderboard' && <Leaderboard />}
 
-      <BottomNav currentTab={currentTab} onChange={setCurrentTab} />
+        <BottomNav currentTab={currentTab} onChange={setCurrentTab} />
+      </main>
 
       {/* Capture Result Overlay */}
       <AnimatePresence>
@@ -402,8 +403,11 @@ function App() {
                   </span>
                 </div>
               </div>
+              
+              <MatchHistory />
 
-              <button
+              <div className="mt-8">
+                <button
                 onClick={() => {
                   setShowProfile(false);
                   signOut();
@@ -412,6 +416,7 @@ function App() {
               >
                 <LogOut className="w-5 h-5" /> Đăng xuất
               </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -446,14 +451,17 @@ function App() {
                 {inventory.filter(a => !a.is_trading).length === 0 ? (
                   <p className="text-rose-500 font-bold text-center py-4 bg-rose-50 rounded-xl">Bạn không có Animon nào khả dụng!</p>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-wrap justify-center gap-4">
                     {inventory.filter(a => !a.is_trading).map(animon => (
                       <div 
                         key={animon.id} 
-                        className={`cursor-pointer transition-transform hover:scale-105 rounded-xl border-4 ${inviteAcceptAnimonId === animon.id ? 'border-rose-500 shadow-lg' : 'border-transparent'}`}
+                        className="relative group cursor-pointer"
                         onClick={() => setInviteAcceptAnimonId(animon.id)}
                       >
                         <Card animon={animon as any} />
+                        {inviteAcceptAnimonId === animon.id && (
+                          <div className="absolute inset-0 bg-rose-500/20 border-4 border-rose-500 rounded-[2rem] pointer-events-none z-10" />
+                        )}
                       </div>
                     ))}
                   </div>

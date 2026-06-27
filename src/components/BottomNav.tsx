@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, Store, Swords, Users } from 'lucide-react';
+import { Home, Store, Swords, Users, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export type TabType = 'collection' | 'market' | 'battle' | 'friends';
+export type TabType = 'collection' | 'market' | 'battle' | 'friends' | 'leaderboard';
 
 interface BottomNavProps {
   currentTab: TabType;
@@ -15,6 +15,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChange }) =>
     { id: 'market', icon: Store, label: 'Chợ' },
     { id: 'battle', icon: Swords, label: 'Chiến Đấu' },
     { id: 'friends', icon: Users, label: 'Bạn Bè' },
+    { id: 'leaderboard', icon: Trophy, label: 'Xếp Hạng' },
   ] as const;
 
   return (

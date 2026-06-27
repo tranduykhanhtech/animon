@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
 export const BattleArena: React.FC = () => {
-  const { inventory, username, friends, user } = useGameStore();
+  const { inventory, username, friends, user, rank_points } = useGameStore();
   const { isSearching, roomId, opponent, me, isMyTurn, battleLog, startSearch, cancelSearch, attack, leaveBattle, joinPrivateBattle } = useBattleStore();
   const [selectedAnimon, setSelectedAnimon] = useState<Animon | null>(null);
   
@@ -16,7 +16,7 @@ export const BattleArena: React.FC = () => {
 
   const handleStartMatchmaking = () => {
     if (!selectedAnimon || !username) return;
-    startSearch(selectedAnimon, username);
+    startSearch(selectedAnimon, username, rank_points);
   };
 
   const handleInviteFriend = (friendId: string, friendUsername: string) => {
@@ -142,7 +142,7 @@ export const BattleArena: React.FC = () => {
   }
 
   return (
-    <div className="pb-32 px-4 flex flex-col items-center">
+    <div className="pb-48 px-4 flex flex-col items-center">
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-200 to-orange-200 flex items-center justify-center shadow-sm border-2 border-white mb-4">
         <Swords className="w-8 h-8 text-amber-500" />
       </div>
@@ -193,7 +193,7 @@ export const BattleArena: React.FC = () => {
             {selectedAnimon && (
               <motion.div 
                 initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-24 left-0 w-full px-4 z-30 flex flex-col sm:flex-row justify-center gap-4 pointer-events-none"
+                className="fixed bottom-32 left-0 w-full px-4 z-30 flex flex-col sm:flex-row justify-center gap-4 pointer-events-none"
               >
                 <button
                   onClick={() => setShowInviteModal(true)}

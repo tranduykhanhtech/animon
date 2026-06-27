@@ -8,12 +8,12 @@ interface CardProps {
   onClick?: () => void;
 }
 
-const elementColors: Record<string, string> = {
-  Fire: 'from-rose-300 to-orange-300 border-rose-200 text-rose-600',
-  Water: 'from-blue-200 to-cyan-300 border-blue-200 text-blue-600',
-  Grass: 'from-green-200 to-emerald-300 border-green-200 text-green-700',
-  Electric: 'from-yellow-200 to-amber-300 border-yellow-200 text-yellow-700',
-  Earth: 'from-amber-200 to-orange-200 border-amber-200 text-amber-800',
+const elementThemes: Record<string, string> = {
+  Fire: 'bg-gradient-to-br from-rose-400 to-orange-300',
+  Water: 'bg-gradient-to-br from-blue-400 to-cyan-200',
+  Grass: 'bg-gradient-to-br from-emerald-400 to-green-300',
+  Electric: 'bg-gradient-to-br from-yellow-300 to-amber-200',
+  Earth: 'bg-gradient-to-br from-amber-600 to-orange-300',
 };
 
 const rarityStars: Record<string, string> = {
@@ -36,65 +36,107 @@ const ElementIcon = ({ element, className }: { element: string, className?: stri
 
 export const Card: React.FC<CardProps> = ({ animon, onClick }) => {
   const { name, imageUrl, stats } = animon;
-  const theme = elementColors[stats.element] || elementColors.Grass;
+  const innerBg = elementThemes[stats.element] || elementThemes.Grass;
 
   return (
     <motion.div
       onClick={onClick}
-      whileHover={{ scale: 1.05, rotate: -2 }}
+      whileHover={{ scale: 1.05, rotate: -1 }}
       whileTap={{ scale: 0.95 }}
-      className={`relative w-64 h-80 rounded-[2rem] p-2 cursor-pointer transition-shadow duration-300
-        bg-white shadow-[0_10px_20px_rgba(0,0,0,0.08)] border-4 ${theme.split(' ')[2]}`}
+      // Yellow outer border characteristic of Pokemon cards
+      className={`relative w-[240px] min-h-[336px] h-max rounded-xl p-2.5 cursor-pointer transition-shadow duration-300 shadow-xl bg-[#fcd34d] flex-shrink-0`}
     >
-      <div className={`relative h-full w-full bg-gradient-to-br ${theme.split(' ')[0]} ${theme.split(' ')[1]} rounded-[1.5rem] p-4 flex flex-col items-center justify-between border-4 border-white shadow-inner`}>
+      {/* Inner coloured background */}
+      <div className={`relative h-full w-full rounded-lg flex flex-col p-2 ${innerBg} shadow-inner overflow-hidden border-2 border-amber-300/30`}>
         
         {/* Header */}
-        <div className="w-full flex justify-between items-start z-10">
+        <div className="w-full flex justify-between items-center mb-1.5 px-0.5">
           <div className="flex flex-col">
-            <span className="text-lg font-black text-white drop-shadow-md truncate max-w-[140px]" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.1)' }}>
+            <span className="text-[15px] font-black text-stone-900 truncate max-w-[150px] leading-tight">
               {name}
             </span>
-            <span className="text-xs font-bold text-white/90 drop-shadow-sm mt-0.5">
-              {rarityStars[stats.rarity]} {stats.rarity}
+            <span className="text-[9px] font-bold text-stone-800 leading-none mt-0.5 opacity-80">
+              Cấp độ {rarityStars[stats.rarity]}
             </span>
           </div>
-          <div className="p-2 rounded-full bg-white/40 shadow-sm backdrop-blur-sm">
-            <ElementIcon element={stats.element} className={`w-6 h-6 ${theme.split(' ')[3]}`} />
+          <div className="w-6 h-6 rounded-full bg-white/70 shadow-sm flex items-center justify-center border border-white/50">
+            <ElementIcon element={stats.element} className="w-3.5 h-3.5 text-stone-800" />
           </div>
         </div>
 
-        {/* Image */}
-        <div className="relative w-full h-32 mt-2 rounded-[1.2rem] overflow-hidden border-4 border-white bg-white/50 shadow-sm group">
+        {/* Holographic Image Frame */}
+        <div className="relative w-full rounded-sm overflow-hidden border-[4px] border-[#fbbf24] bg-stone-100 shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
           {imageUrl ? (
-             <img src={imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+             <img src={imageUrl} alt={name} className="w-full h-auto object-cover" />
           ) : (
-             <div className="w-full h-full flex items-center justify-center text-stone-400 font-medium">No Image</div>
+             <div className="w-full aspect-video flex items-center justify-center text-stone-400 font-medium text-xs">No Image</div>
+          )}
+          {/* Inner shadow for 3D effect */}
+          <div className="absolute inset-0 shadow-[inset_0_0_10px_rgba(0,0,0,0.4)] pointer-events-none" />
+        </div>
+
+        {/* Flavor text bar */}
+        <div className="w-full mt-1 mb-1 px-1 flex justify-center items-center">
+           <span className="text-[7.5px] font-bold text-stone-800 italic uppercase tracking-wider bg-white/40 px-3 py-0.5 rounded shadow-sm">
+             {stats.element} ANIMON. NĂNG LƯỢNG HỆ: {stats.energy * 10}
+           </span>
+        </div>
+
+        {/* Abilities Body */}
+        <div className="w-full flex-1 rounded bg-[#fefce8]/90 p-2 flex flex-col gap-2 shadow-sm border border-stone-300">
+          
+          <div className="flex justify-between items-center w-full group">
+             <div className="flex items-center gap-1.5">
+               <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm border border-stone-200">
+                 <ElementIcon element={stats.element} className="w-3 h-3 text-stone-700" />
+               </div>
+               <span className="text-sm font-bold text-stone-800 tracking-wide">Sức Mạnh</span>
+             </div>
+             <span className="text-lg font-black text-stone-900">{stats.power}</span>
+          </div>
+          
+          <div className="flex justify-between items-center w-full group">
+             <div className="flex items-center gap-1.5">
+               <div className="w-5 h-5 rounded-full bg-stone-100 flex items-center justify-center shadow-sm border border-stone-300">
+                 <div className="w-2.5 h-2.5 rounded-full bg-stone-400" />
+               </div>
+               <span className="text-sm font-bold text-stone-800 tracking-wide">Năng Lượng</span>
+             </div>
+             <span className="text-lg font-black text-stone-900">{stats.energy}</span>
+          </div>
+
+          {/* Hidden Ability as Pokemon Power */}
+          {stats.hidden_ability && stats.hidden_ability !== 'None' && (
+            <div className="mt-auto border-t border-stone-300/60 pt-1.5 flex flex-col">
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] font-black text-red-600 tracking-wider">NỘI TẠI</span>
+                <span className="text-[10px] font-bold text-stone-800">
+                  {{ 'Critical Strike': 'Chí Mạng', 'Vampire': 'Hút Máu', 'Dodge': 'Né Tránh', 'Thorns': 'Phản Đòn' }[stats.hidden_ability] || stats.hidden_ability}
+                </span>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-2 mt-4 text-xs font-bold text-stone-600">
-          <div className="bg-white/50 rounded-xl p-2 flex flex-col items-center shadow-sm">
-            <span className="text-stone-400">Power</span>
-            <span className="text-base text-stone-700">{animon.stats.power}</span>
+        {/* Bottom Footer Stats */}
+        <div className="w-full mt-1.5 flex justify-between items-end px-1 pb-0.5">
+          <div className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <span className="text-[6px] font-bold text-stone-800/70">Weakness</span>
+              <span className="text-[9px] font-black text-stone-900">x2</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[6px] font-bold text-stone-800/70">Resistance</span>
+              <span className="text-[9px] font-black text-stone-900">-20</span>
+            </div>
           </div>
-          <div className="bg-white/50 rounded-xl p-2 flex flex-col items-center shadow-sm">
-            <span className="text-stone-400">Energy</span>
-            <span className="text-base text-stone-700">{animon.stats.energy}</span>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black text-amber-900 italic">Giá: {stats.value}</span>
+            <span className="text-[6px] font-bold text-stone-800/70">{stats.seed.toString().slice(0, 8)} / 999</span>
           </div>
-        </div>
-
-        <div className="mt-3 bg-white/60 rounded-xl p-2 flex justify-center items-center gap-1 shadow-sm border border-white">
-          <span className="text-xs font-bold text-stone-500">Định giá:</span>
-          <span className="text-sm font-black text-amber-500 flex items-center">
-            {animon.stats.value || 0}
-          </span>
         </div>
         
       </div>
-      
-      {/* Glossy overlay top */}
-      <div className="absolute top-2 left-2 w-16 h-6 bg-white/40 rounded-full blur-sm pointer-events-none transform -rotate-12" />
     </motion.div>
   );
 };

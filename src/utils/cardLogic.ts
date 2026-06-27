@@ -1,6 +1,8 @@
 export type ElementType = 'Fire' | 'Water' | 'Grass' | 'Electric' | 'Earth';
 export type RarityType = 'Common' | 'Rare' | 'Epic' | 'Legendary';
 
+export type HiddenAbility = 'Critical Strike' | 'Vampire' | 'Dodge' | 'Thorns' | 'None';
+
 export interface CardStats {
   element: ElementType;
   rarity: RarityType;
@@ -8,6 +10,7 @@ export interface CardStats {
   energy: number;
   seed: number;
   value: number;
+  hidden_ability: HiddenAbility;
 }
 
 const ELEMENTS: ElementType[] = ['Fire', 'Water', 'Grass', 'Electric', 'Earth'];
@@ -93,12 +96,30 @@ export function generateCardStats(file: File): CardStats {
   const baseValue = (power + energy) * 2; // base from stats
   const value = Math.floor(baseValue * rarityMultiplier[rarity]);
 
+  // 4. Hidden Ability
+  let hidden_ability: HiddenAbility = 'None';
+  const abilityRoll = Math.floor(seededRandom(seed + 3) * 100) + 1;
+  
+  // Rarity affects the chance of getting a hidden ability
+  let hasAbility = false;
+  if (rarity === 'Legendary') hasAbility = true; // 100% chance
+  else if (rarity === 'Epic' && abilityRoll <= 70) hasAbility = true; // 70% chance
+  else if (rarity === 'Rare' && abilityRoll <= 40) hasAbility = true; // 40% chance
+  else if (rarity === 'Common' && abilityRoll <= 10) hasAbility = true; // 10% chance
+
+  if (hasAbility) {
+    const abilities: HiddenAbility[] = ['Critical Strike', 'Vampire', 'Dodge', 'Thorns'];
+    const abilityIndex = Math.floor(seededRandom(seed + 4) * 4);
+    hidden_ability = abilities[abilityIndex];
+  }
+
   return {
     element,
     rarity,
     power,
     energy,
     seed,
-    value
+    value,
+    hidden_ability
   };
 }

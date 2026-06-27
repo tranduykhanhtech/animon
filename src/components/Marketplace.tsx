@@ -148,20 +148,29 @@ export const Marketplace: React.FC = () => {
                     Người bán: <span className="text-rose-500">{trade.seller.username}</span>
                   </div>
                   
-                  <button
-                    onClick={() => handleBuy(trade.id, trade.price)}
-                    disabled={isMine}
-                    className={`w-full py-2 rounded-xl flex items-center justify-center gap-2 font-black text-lg transition-transform ${
-                      isMine 
-                        ? 'bg-stone-100 text-stone-400 cursor-not-allowed border-2 border-stone-200'
-                        : 'bg-gradient-to-r from-amber-300 to-orange-400 text-white shadow-[0_4px_0_rgba(245,158,11,0.2)] border-2 border-white hover:-translate-y-1 hover:shadow-[0_6px_0_rgba(245,158,11,0.2)] active:translate-y-0 active:shadow-none'
-                    }`}
-                  >
-                    {isMine ? 'Đang bán' : 'Mua Ngay'}
-                    <span className="flex items-center bg-white/20 px-2 py-0.5 rounded-full">
-                       <Coins className="w-4 h-4 mr-1 fill-white" /> {trade.price}
-                    </span>
-                  </button>
+                  {isMine ? (
+                    <button
+                      onClick={async () => {
+                        if (confirm("Bạn có chắc muốn gỡ thẻ bài này khỏi chợ không?")) {
+                          const success = await useGameStore.getState().cancelTrade(trade.id, trade.animon.id);
+                          if (success) alert("Đã gỡ thẻ bài khỏi chợ thành công!");
+                        }
+                      }}
+                      className="w-full py-2 rounded-xl flex items-center justify-center gap-2 font-black text-lg transition-transform bg-stone-100 text-stone-500 hover:bg-stone-200 border-2 border-stone-200 hover:-translate-y-1 active:translate-y-0"
+                    >
+                      <X className="w-5 h-5" /> Gỡ Xuống
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleBuy(trade.id, trade.price)}
+                      className="w-full py-2 rounded-xl flex items-center justify-center gap-2 font-black text-lg transition-transform bg-gradient-to-r from-amber-300 to-orange-400 text-white shadow-[0_4px_0_rgba(245,158,11,0.2)] border-2 border-white hover:-translate-y-1 hover:shadow-[0_6px_0_rgba(245,158,11,0.2)] active:translate-y-0 active:shadow-none"
+                    >
+                      Mua Ngay
+                      <span className="flex items-center bg-white/20 px-2 py-0.5 rounded-full">
+                         <Coins className="w-4 h-4 mr-1 fill-white" /> {trade.price}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );

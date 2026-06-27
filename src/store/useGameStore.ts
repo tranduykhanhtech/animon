@@ -32,6 +32,22 @@ export interface FriendRequest {
   receiver: { username: string; email?: string };
 }
 
+export interface LeaderboardUser {
+  id: string;
+  username: string;
+  rank_points: number;
+}
+
+export interface MatchHistoryEntry {
+  id: string;
+  winner_id: string;
+  loser_id: string;
+  points_change: number;
+  created_at: string;
+  winner: { username: string };
+  loser: { username: string };
+}
+
 interface GameState {
   session: Session | null;
   user: User | null;
@@ -41,6 +57,9 @@ interface GameState {
   friends: FriendRequest[];
   friendRequests: FriendRequest[];
   coins: number;
+  rank_points: number;
+  leaderboard: LeaderboardUser[];
+  matchHistory: MatchHistoryEntry[];
   isLoading: boolean;
   
   setSession: (session: Session | null) => void;
@@ -48,6 +67,8 @@ interface GameState {
   fetchInventory: () => Promise<void>;
   fetchMarketplace: () => Promise<void>;
   fetchFriends: () => Promise<void>;
+  fetchLeaderboard: () => Promise<void>;
+  fetchMatchHistory: () => Promise<void>;
   sendFriendRequest: (email: string) => Promise<{ success: boolean; message: string }>;
   acceptFriendRequest: (id: string) => Promise<boolean>;
   rejectFriendRequest: (id: string) => Promise<boolean>;
@@ -55,6 +76,7 @@ interface GameState {
   listAnimonForSale: (animonId: string, price: number) => Promise<boolean>;
   quickSellAnimon: (animonId: string) => Promise<boolean>;
   buyAnimon: (tradeId: string) => Promise<boolean>;
+  cancelTrade: (tradeId: string, animonId: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -67,6 +89,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   friends: [],
   friendRequests: [],
   coins: 0,
+  rank_points: 0,
+  leaderboard: [],
+  matchHistory: [],
   isLoading: true,
 
   setSession: (session) => {
@@ -83,18 +108,22 @@ export const useGameStore = create<GameState>((set, get) => ({
   fetchProfile: async () => {
     const user = get().user;
     if (!user) return;
-    
-    const { data, error } = await supabase
-      .from('users')
-      .select('username, coins')
-      .eq('id', user.id)
-      .maybeSingle();
-      
-    if (data && !error) {
-      set({ username: data.username, coins: data.coins, isLoading: false });
-    } else {
-      set({ isLoading: false });
-    }
+        const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (data) {
+        set({ 
+          username: data.username,
+          coins: data.coins,
+          rank_points: data.rank_points || 0,
+          isLoading: false 
+        });
+      } else {
+        set({ isLoading: false });
+      }
   },
 
   fetchInventory: async () => {
@@ -122,6 +151,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           energy: row.energy,
           seed: row.seed,
           value: row.value || 0,
+          hidden_ability: row.hidden_ability || 'None',
         }
       }));
       
@@ -161,6 +191,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         energy: animonData.stats.energy,
         seed: animonData.stats.seed,
         value: animonData.stats.value,
+        hidden_ability: animonData.stats.hidden_ability,
       };
 
       const { data, error: insertError } = await supabase
@@ -223,6 +254,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             energy: row.animons.energy,
             seed: row.animons.seed,
             value: row.animons.value || 0,
+            hidden_ability: row.animons.hidden_ability || 'None',
           }
         }
       }));
@@ -260,6 +292,38 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  fetchLeaderboard: async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, rank_points')
+      .order('rank_points', { ascending: false })
+      .limit(50);
+
+    if (data && !error) {
+      set({ leaderboard: data });
+    }
+  },
+
+  fetchMatchHistory: async () => {
+    const user = get().user;
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('match_history')
+      .select(`
+        *,
+        winner:users!match_history_winner_id_fkey(username),
+        loser:users!match_history_loser_id_fkey(username)
+      `)
+      .or(`winner_id.eq.${user.id},loser_id.eq.${user.id}`)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (data && !error) {
+      set({ matchHistory: data });
+    }
+  },
+
   sendFriendRequest: async (email: string) => {
     const user = get().user;
     if (!user) return { success: false, message: 'Chưa đăng nhập' };
@@ -284,7 +348,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         .from('friendships')
         .select('*')
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${user.id})`)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return { success: false, message: 'Hai người đã là bạn bè hoặc đã gửi lời mời rồi!' };
@@ -413,8 +477,31 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  cancelTrade: async (tradeId: string, animonId: string) => {
+    try {
+      const { error } = await supabase.rpc('cancel_trade', {
+        p_trade_id: tradeId,
+        p_animon_id: animonId
+      });
+
+      if (error) {
+        alert(error.message);
+        return false;
+      }
+
+      // Refresh lại data
+      await get().fetchInventory();
+      await get().fetchMarketplace();
+      
+      return true;
+    } catch (err) {
+      console.error('Error cancelling trade:', err);
+      return false;
+    }
+  },
+
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ session: null, user: null, inventory: [], coins: 0, username: null });
+    set({ session: null, user: null, inventory: [], coins: 0, rank_points: 0, username: null, leaderboard: [], matchHistory: [] });
   }
 }));
