@@ -74,12 +74,14 @@ function App() {
     };
   }, [user]);
 
-  const handleCapture = (file: File, imageUrl: string) => {
-    const stats = generateCardStats(file);
+  const handleCapture = (file: File, imageUrl: string, species: string) => {
+    // Convert e.g. "golden retriever, retriever" to "Golden Retriever" for display
+    const formattedName = species.split(',')[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const stats = generateCardStats(file, species);
     setNewlyCaught({
       file,
       imageUrl,
-      name: `Wild ${stats.element} Animon`,
+      name: formattedName,
       stats
     });
   };

@@ -32,13 +32,37 @@ function seededRandom(seed: number) {
   return x - Math.floor(x);
 }
 
-export function generateCardStats(file: File): CardStats {
+const getElementForSpecies = (species: string): ElementType | null => {
+  const s = species.toLowerCase();
+  if (s.match(/fish|shark|whale|turtle|frog|crab|dolphin|shrimp|octopus|squid|seal|walrus/)) return 'Water';
+  if (s.match(/bird|eagle|hawk|butterfly|mantis|parrot|owl|moth|chicken|duck|goose/)) return 'Grass';
+  if (s.match(/lion|tiger|wolf|bear|fox|dragon|hyena|cheetah|dog|hound/)) return 'Fire';
+  if (s.match(/snake|lizard|crocodile|rhino|elephant|pig|boar|hippo|cow|sheep|goat/)) return 'Earth';
+  if (s.match(/mouse|rat|cat|rabbit|monkey|ape|gorilla|bat|spider|bug/)) return 'Electric';
+  return null;
+}
+
+const getAbilityForSpecies = (species: string): HiddenAbility | null => {
+  const s = species.toLowerCase();
+  if (s.match(/turtle|crab|rhino|armadillo|snail|beetle|tortoise|clam/)) return 'Thorns';
+  if (s.match(/spider|bat|snake|mosquito|leech|vampire|tick|bug/)) return 'Vampire';
+  if (s.match(/lion|tiger|eagle|bear|shark|wolf|hawk|dog|hound/)) return 'Critical Strike';
+  if (s.match(/cat|rabbit|cheetah|monkey|fox|mouse|rat|bird/)) return 'Dodge';
+  return null;
+}
+
+export function generateCardStats(file: File, species?: string): CardStats {
   const hash = hashString(file.name) + file.size;
   const seed = Math.abs(hash);
 
   // 1. Element
-  const elementIndex = seed % 5;
-  const element = ELEMENTS[elementIndex];
+  let element: ElementType;
+  if (species && getElementForSpecies(species)) {
+    element = getElementForSpecies(species)!;
+  } else {
+    const elementIndex = seed % 5;
+    element = ELEMENTS[elementIndex];
+  }
 
   // 2. Rarity (1 - 100)
   const rarityRoll = Math.floor(seededRandom(seed) * 100) + 1;
@@ -108,9 +132,13 @@ export function generateCardStats(file: File): CardStats {
   else if (rarity === 'Common' && abilityRoll <= 10) hasAbility = true; // 10% chance
 
   if (hasAbility) {
-    const abilities: HiddenAbility[] = ['Critical Strike', 'Vampire', 'Dodge', 'Thorns'];
-    const abilityIndex = Math.floor(seededRandom(seed + 4) * 4);
-    hidden_ability = abilities[abilityIndex];
+    if (species && getAbilityForSpecies(species)) {
+      hidden_ability = getAbilityForSpecies(species)!;
+    } else {
+      const abilities: HiddenAbility[] = ['Critical Strike', 'Vampire', 'Dodge', 'Thorns'];
+      const abilityIndex = Math.floor(seededRandom(seed + 4) * 4);
+      hidden_ability = abilities[abilityIndex];
+    }
   }
 
   return {

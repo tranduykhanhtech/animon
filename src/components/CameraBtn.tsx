@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isAnimal, loadAIModel } from '../utils/aiDetector';
 
 interface CameraBtnProps {
-  onCapture: (file: File, imageUrl: string) => void;
+  onCapture: (file: File, imageUrl: string, species: string) => void;
 }
 
 export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
@@ -89,7 +89,7 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
               const fileName = `animon_${Date.now()}.jpg`;
               const file = new File([blob], fileName, { type: 'image/jpeg' });
               const imageUrl = URL.createObjectURL(blob);
-              onCapture(file, imageUrl);
+              onCapture(file, imageUrl, result.topGuess);
               stopCamera();
             }
           }, 'image/jpeg', 0.9);
