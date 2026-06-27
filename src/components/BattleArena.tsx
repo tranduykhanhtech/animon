@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 
 export const BattleArena: React.FC = () => {
   const { inventory, username, friends, user, rank_points } = useGameStore();
-  const { isSearching, roomId, opponent, me, isMyTurn, battleLog, startSearch, cancelSearch, attack, leaveBattle, joinPrivateBattle } = useBattleStore();
+  const { isSearching, roomId, opponent, me, battleLog, startSearch, cancelSearch, leaveBattle, joinPrivateBattle } = useBattleStore();
   const [selectedAnimon, setSelectedAnimon] = useState<Animon | null>(null);
   
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -115,19 +115,11 @@ export const BattleArena: React.FC = () => {
              </div>
            ) : (
              <div className="flex flex-col gap-4">
-                <button 
-                  onClick={attack}
-                  disabled={!isMyTurn || !opponent}
-                  className={`py-4 rounded-2xl font-black text-lg flex justify-center items-center gap-2 transition-all shadow-sm ${
-                    isMyTurn && opponent 
-                      ? 'bg-gradient-to-r from-blue-400 to-cyan-400 text-white border-4 border-blue-100 active:scale-95' 
-                      : 'bg-stone-100 text-stone-400 cursor-not-allowed border-4 border-stone-200'
-                  }`}
-                >
-                  <Zap className="w-6 h-6" /> {isMyTurn ? 'TẤN CÔNG!' : 'Chờ lượt đối thủ...'}
-                </button>
+                <div className="py-4 rounded-2xl font-black text-lg flex justify-center items-center gap-2 bg-stone-100 text-stone-500 border-4 border-stone-200 shadow-sm animate-pulse">
+                  <Zap className="w-6 h-6 text-amber-400" /> TRẬN ĐẤU ĐANG TỰ ĐỘNG DIỄN RA...
+                </div>
                 
-                <div className="bg-white p-4 rounded-2xl border-2 border-stone-100 h-32 overflow-y-auto flex flex-col gap-1">
+                <div className="bg-white p-4 rounded-2xl border-2 border-stone-100 h-48 overflow-y-auto flex flex-col gap-2">
                   {battleLog.map((log, i) => (
                     <div key={i} className={`text-sm font-medium ${i === 0 ? 'text-stone-800' : 'text-stone-400'}`}>
                       {log}

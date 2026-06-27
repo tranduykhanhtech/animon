@@ -22,7 +22,6 @@ interface BattleState {
   
   startSearch: (myAnimon: Animon, username: string, myRankPoints: number) => Promise<void>;
   cancelSearch: () => void;
-  attack: () => void;
   leaveBattle: () => void;
   joinPrivateBattle: (roomId: string, myAnimon: Animon, username: string, isHost: boolean) => void;
 }
@@ -88,88 +87,12 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     set({ isSearching: false, channel: null });
   },
 
-  attack: () => {
-    const { channel, me, opponent, isMyTurn } = get();
-    if (!channel || !me || !opponent || !isMyTurn) return;
 
-    let damage = Math.max(1, Math.floor(me.animon.stats.power * (0.8 + Math.random() * 0.4)));
-    
-    let isCrit = false;
-    let isDodge = false;
-    let vampireHeal = 0;
-    let thornsDamage = 0;
-
-    const myAbility = me.animon.stats.hidden_ability;
-    const oppAbility = opponent.animon.stats.hidden_ability;
-
-    if (myAbility === 'Critical Strike' && Math.random() < 0.20) {
-      isCrit = true;
-      damage *= 2;
-    }
-
-    if (oppAbility === 'Dodge' && Math.random() < 0.15) {
-      isDodge = true;
-      damage = 0;
-    }
-
-    if (!isDodge) {
-      if (myAbility === 'Vampire') {
-        vampireHeal = Math.floor(damage * 0.3);
-      }
-      if (oppAbility === 'Thorns') {
-        thornsDamage = Math.floor(damage * 0.2);
-      }
-    }
-
-    const newOpponentHp = Math.max(0, opponent.hp - damage);
-    const newMyHp = Math.min(me.maxHp, Math.max(0, me.hp + vampireHeal - thornsDamage));
-    
-    let logMsg = `Bạn đã tấn công gây ${damage} sát thương!`;
-    if (isDodge) logMsg = `Đối thủ đã NÉ TRÁNH đòn tấn công của bạn!`;
-    else if (isCrit) logMsg = `CHÍ MẠNG! Bạn gây ${damage} sát thương!`;
-
-    const logs = [logMsg, ...get().battleLog];
-    if (vampireHeal > 0) logs.unshift(`Bạn được hồi ${vampireHeal} HP nhờ Hút Máu!`);
-    if (thornsDamage > 0) logs.unshift(`Bạn bị phản ${thornsDamage} sát thương từ Gai Nhọn!`);
-
-    set({ 
-      opponent: { ...opponent, hp: newOpponentHp },
-      me: { ...me, hp: newMyHp },
-      isMyTurn: false,
-      battleLog: logs
-    });
-
-    // Broadcast attack
-    channel.send({
-      type: 'broadcast',
-      event: 'attack',
-      payload: { damage, isCrit, isDodge, vampireHeal, thornsDamage, attacker: me.username }
-    });
-
-    if (newOpponentHp === 0) {
-      set({ battleLog: ['Bạn đã chiến thắng! 🎉 (Đang cập nhật kết quả...)', ...get().battleLog] });
-      
-      // Call record_battle_result RPC
-      if (opponent.id) {
-        supabase.rpc('record_battle_result', { p_loser_id: opponent.id })
-          .then(({ error }) => {
-            if (error) {
-              console.error('Lỗi khi cập nhật hạng:', error);
-            } else {
-              set({ battleLog: ['Bạn được cộng +25 RP!', ...get().battleLog] });
-              // Refresh user profile to get new rank
-              import('./useGameStore').then(({ useGameStore }) => {
-                useGameStore.getState().fetchProfile();
-              });
-            }
-          });
-      }
-    }
-  },
 
   leaveBattle: () => {
     const channel = get().channel;
     if (channel) channel.unsubscribe();
+    if ((window as any).battleInterval) clearInterval((window as any).battleInterval);
     set({ roomId: null, opponent: null, me: null, isMyTurn: false, battleLog: [], channel: null, isSearching: false });
   },
 
@@ -178,12 +101,155 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   }
 }));
 
+function getElementMultiplier(attackerElement: string, defenderElement: string) {
+  if (attackerElement === 'Water' && defenderElement === 'Fire') return 1.5;
+  if (attackerElement === 'Fire' && defenderElement === 'Grass') return 1.5;
+  if (attackerElement === 'Grass' && defenderElement === 'Earth') return 1.5;
+  if (attackerElement === 'Earth' && defenderElement === 'Electric') return 1.5;
+  if (attackerElement === 'Electric' && defenderElement === 'Water') return 1.5;
+  
+  if (attackerElement === 'Fire' && defenderElement === 'Water') return 0.7;
+  if (attackerElement === 'Grass' && defenderElement === 'Fire') return 0.7;
+  if (attackerElement === 'Earth' && defenderElement === 'Grass') return 0.7;
+  if (attackerElement === 'Electric' && defenderElement === 'Earth') return 0.7;
+  if (attackerElement === 'Water' && defenderElement === 'Electric') return 0.7;
+  
+  return 1.0;
+}
+
+// Host executes the turn and broadcasts it
+function executeTurn(channel: RealtimeChannel, isHostAttacking: boolean) {
+  const store = useBattleStore.getState();
+  const host = isHostAttacking ? store.me : store.opponent;
+  const target = isHostAttacking ? store.opponent : store.me;
+  
+  if (!host || !target || host.hp <= 0 || target.hp <= 0) return;
+
+  const multiplier = getElementMultiplier(host.animon.stats.element, target.animon.stats.element);
+  let damage = Math.max(1, Math.floor(host.animon.stats.power * (0.8 + Math.random() * 0.4) * multiplier));
+  
+  let isCrit = false;
+  let isDodge = false;
+  let vampireHeal = 0;
+  let thornsDamage = 0;
+
+  const attackerAbility = host.animon.stats.hidden_ability;
+  const defenderAbility = target.animon.stats.hidden_ability;
+
+  if (attackerAbility === 'Critical Strike' && Math.random() < 0.20) {
+    isCrit = true;
+    damage *= 2;
+  }
+
+  if (defenderAbility === 'Dodge' && Math.random() < 0.20) {
+    isDodge = true;
+    damage = 0;
+  }
+
+  if (!isDodge) {
+    if (attackerAbility === 'Vampire') {
+      vampireHeal = Math.floor(damage * 0.5);
+    }
+    if (defenderAbility === 'Thorns') {
+      thornsDamage = Math.floor(damage * 0.3);
+    }
+  }
+
+  const payload = {
+    isHostAttacking,
+    damage,
+    isCrit,
+    isDodge,
+    vampireHeal,
+    thornsDamage,
+    multiplier,
+    attackerName: host.username,
+    targetName: target.username
+  };
+
+  // Apply to local state
+  applyTurnResult(payload);
+
+  // Broadcast to peer
+  channel.send({
+    type: 'broadcast',
+    event: 'turn_result',
+    payload
+  });
+}
+
+function applyTurnResult(payload: any) {
+  const store = useBattleStore.getState();
+  const { damage, isCrit, isDodge, vampireHeal, thornsDamage, multiplier, attackerName, targetName } = payload;
+  
+  const me = store.me;
+  const opponent = store.opponent;
+  if (!me || !opponent) return;
+
+  // I am the host if isMyTurn was true initially. Wait, store.isMyTurn might flip.
+  // Better to use my username to check if I am the attacker.
+  const amIAttacker = me.username === attackerName;
+  
+  const attacker = amIAttacker ? me : opponent;
+  const defender = amIAttacker ? opponent : me;
+
+  const newDefenderHp = Math.max(0, defender.hp - damage);
+  const newAttackerHp = Math.min(attacker.maxHp, Math.max(0, attacker.hp + vampireHeal - thornsDamage));
+
+  let logMsg = `⚔️ ${attackerName} tấn công! Gây ${damage} ST.`;
+  if (multiplier > 1) logMsg = `🔥 KHẮC HỆ! ${attackerName} gây ${damage} ST.`;
+  else if (multiplier < 1) logMsg = `🛡️ BỊ KHẮC HỆ! ${attackerName} chỉ gây ${damage} ST.`;
+
+  if (isDodge) logMsg = `💨 ${targetName} NÉ TRÁNH thành công!`;
+  else if (isCrit) logMsg = `💥 CHÍ MẠNG! ${attackerName} gây ${damage} ST.`;
+
+  const logs = [logMsg, ...store.battleLog];
+  if (vampireHeal > 0) logs.unshift(`🩸 ${attackerName} hút được ${vampireHeal} HP!`);
+  if (thornsDamage > 0) logs.unshift(`🌵 ${attackerName} bị gai đâm ${thornsDamage} ST!`);
+
+  const nextMe = amIAttacker ? { ...me, hp: newAttackerHp } : { ...me, hp: newDefenderHp };
+  const nextOpponent = amIAttacker ? { ...opponent, hp: newDefenderHp } : { ...opponent, hp: newAttackerHp };
+
+  useBattleStore.setState({
+    me: nextMe,
+    opponent: nextOpponent,
+    battleLog: logs
+  });
+
+  // Check game over
+  if (nextMe.hp === 0 || nextOpponent.hp === 0) {
+    if ((window as any).battleInterval) clearInterval((window as any).battleInterval);
+    
+    if (nextMe.hp === 0 && nextOpponent.hp > 0) {
+      useBattleStore.setState({ battleLog: ['💀 Bạn đã thua cuộc...', ...useBattleStore.getState().battleLog] });
+    } else if (nextOpponent.hp === 0 && nextMe.hp > 0) {
+      useBattleStore.setState({ battleLog: ['🏆 Bạn đã chiến thắng! (Đang cập nhật kết quả...)', ...useBattleStore.getState().battleLog] });
+      
+      // Host calls RPC to record win if they won, or just whoever wins calls it.
+      // Wait, if I won, I call RPC on the loser.
+      if (nextOpponent.id) {
+        supabase.rpc('record_battle_result', { p_loser_id: nextOpponent.id })
+          .then(({ error }) => {
+            if (!error) {
+              useBattleStore.setState({ battleLog: ['✨ Bạn được cộng +25 RP!', ...useBattleStore.getState().battleLog] });
+              import('./useGameStore').then(({ useGameStore }) => {
+                useGameStore.getState().fetchProfile();
+              });
+            }
+          });
+      }
+    } else {
+      useBattleStore.setState({ battleLog: ['🤝 Hòa nhau!', ...useBattleStore.getState().battleLog] });
+    }
+  }
+}
+
 // Helper function to handle Battle Room logic
 function joinBattleRoom(roomId: string, myAnimon: Animon, username: string, initialOpponent: any, isHost: boolean) {
   const store = useBattleStore.getState();
   const battleChannel = supabase.channel(roomId);
 
-  const myMaxHp = myAnimon.stats.power * 5 + myAnimon.stats.energy * 10;
+  const myMaxHp = myAnimon.stats.energy * 10;
   
   let myId: string | undefined;
   import('./useGameStore').then(({ useGameStore }) => {
@@ -196,18 +262,31 @@ function joinBattleRoom(roomId: string, myAnimon: Animon, username: string, init
   useBattleStore.setState({
     roomId,
     me: { id: myId, username, animon: myAnimon, hp: myMaxHp, maxHp: myMaxHp },
-    isMyTurn: isHost, // Host goes first
+    isMyTurn: isHost, 
     battleLog: ['Vào phòng đấu! Chờ đối thủ...', ...store.battleLog],
     channel: battleChannel
   });
 
   if (initialOpponent) {
-    const oppMaxHp = initialOpponent.myAnimon.stats.power * 5 + initialOpponent.myAnimon.stats.energy * 10;
+    const oppMaxHp = initialOpponent.myAnimon.stats.energy * 10;
     useBattleStore.setState({
       opponent: { id: initialOpponent.id, username: initialOpponent.username, animon: initialOpponent.myAnimon, hp: oppMaxHp, maxHp: oppMaxHp },
       battleLog: [`Đối thủ ${initialOpponent.username} đã xuất hiện!`, ...useBattleStore.getState().battleLog]
     });
   }
+
+  const startAutoBattleLoop = () => {
+    let hostTurn = true;
+    (window as any).battleInterval = setInterval(() => {
+      const state = useBattleStore.getState();
+      if (!state.me || !state.opponent || state.me.hp <= 0 || state.opponent.hp <= 0) {
+        clearInterval((window as any).battleInterval);
+        return;
+      }
+      executeTurn(battleChannel, hostTurn);
+      hostTurn = !hostTurn;
+    }, 2000);
+  };
 
   battleChannel
     .on('presence', { event: 'sync' }, () => {
@@ -216,40 +295,19 @@ function joinBattleRoom(roomId: string, myAnimon: Animon, username: string, init
       const opp = players.find(p => p.username !== username);
       
       if (opp && !useBattleStore.getState().opponent) {
-        const oppMaxHp = opp.animon.stats.power * 5 + opp.animon.stats.energy * 10;
+        const oppMaxHp = opp.animon.stats.energy * 10;
         useBattleStore.setState({
           opponent: { id: opp.id, username: opp.username, animon: opp.animon, hp: oppMaxHp, maxHp: oppMaxHp },
-          battleLog: [`Đối thủ ${opp.username} đã xuất hiện!`, ...useBattleStore.getState().battleLog]
+          battleLog: [`Đối thủ ${opp.username} đã xuất hiện! Trận đấu bắt đầu sau 2s...`, ...useBattleStore.getState().battleLog]
         });
+
+        if (isHost) {
+          setTimeout(startAutoBattleLoop, 2000);
+        }
       }
     })
-    .on('broadcast', { event: 'attack' }, (payload) => {
-      const { damage, isCrit, isDodge, vampireHeal, thornsDamage } = payload.payload;
-      const me = useBattleStore.getState().me;
-      const opponent = useBattleStore.getState().opponent;
-      if (!me || !opponent) return;
-      
-      const newHp = Math.max(0, me.hp - damage);
-      const newOppHp = Math.min(opponent.maxHp, Math.max(0, opponent.hp + vampireHeal - thornsDamage));
-      
-      let logMsg = `Đối thủ đã tấn công gây ${damage} sát thương!`;
-      if (isDodge) logMsg = `Bạn đã NÉ TRÁNH đòn tấn công của đối thủ!`;
-      else if (isCrit) logMsg = `CHÍ MẠNG! Đối thủ gây ${damage} sát thương!`;
-
-      const logs = [logMsg, ...useBattleStore.getState().battleLog];
-      if (vampireHeal > 0) logs.unshift(`Đối thủ được hồi ${vampireHeal} HP nhờ Hút Máu!`);
-      if (thornsDamage > 0) logs.unshift(`Đối thủ bị phản ${thornsDamage} sát thương từ Gai Nhọn!`);
-
-      useBattleStore.setState({
-        me: { ...me, hp: newHp },
-        opponent: { ...opponent, hp: newOppHp },
-        isMyTurn: true,
-        battleLog: logs
-      });
-
-      if (newHp === 0) {
-        useBattleStore.setState({ battleLog: ['Bạn đã thua cuộc... 😢', ...useBattleStore.getState().battleLog] });
-      }
+    .on('broadcast', { event: 'turn_result' }, (payload) => {
+      applyTurnResult(payload.payload);
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {

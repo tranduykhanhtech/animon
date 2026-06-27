@@ -24,6 +24,7 @@ function App() {
   const [sellPrice, setSellPrice] = useState<string>('');
   const [showProfile, setShowProfile] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showIosPrompt, setShowIosPrompt] = useState(false);
 
   // Battle Invite State
   const [incomingInvite, setIncomingInvite] = useState<{ inviterId: string, inviterUsername: string, roomId: string } | null>(null);
@@ -51,6 +52,19 @@ function App() {
       window.removeEventListener('beforeinstallprompt', installHandler);
     }
   }, [setSession]);
+
+  useEffect(() => {
+    // Detect iOS for install prompt
+    const isIos = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod/.test(userAgent);
+    };
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator as any).standalone;
+
+    if (isIos() && !isInStandaloneMode()) {
+      setShowIosPrompt(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -149,7 +163,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#FFF8F0] text-stone-700 font-sans selection:bg-rose-200">
       
-      {/* Install PWA Prompt */}
+      {/* Install PWA Prompt (Android) */}
       <AnimatePresence>
         {deferredPrompt && (
           <motion.div
@@ -158,23 +172,49 @@ function App() {
             exit={{ y: -100, opacity: 0 }}
             className="fixed top-4 left-4 right-4 z-50 bg-white p-4 rounded-3xl shadow-xl border-4 border-indigo-100 flex items-center justify-between gap-2 max-w-lg mx-auto"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
-                <Sparkles className="w-6 h-6 text-indigo-500" />
-              </div>
-              <div>
-                <h4 className="font-bold text-stone-800 leading-tight">Cài đặt Ứng dụng</h4>
-                <p className="text-[11px] text-stone-500 font-medium leading-tight mt-0.5">Thêm vào màn hình chính để chơi mượt hơn!</p>
-              </div>
+            <div className="flex-1">
+              <h4 className="font-black text-indigo-500 mb-1">Cài đặt Ứng dụng</h4>
+              <p className="text-xs text-stone-500 font-medium leading-tight">Thêm Animon vào màn hình chính để chơi toàn màn hình!</p>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setDeferredPrompt(null)} className="p-2 text-stone-400 hover:bg-stone-100 rounded-full">
-                <X className="w-5 h-5" />
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={handleInstallClick}
+                className="px-4 py-2 bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-md"
+              >
+                Cài đặt ngay
               </button>
-              <button onClick={handleInstallClick} className="px-5 py-2 bg-indigo-500 text-white font-bold rounded-xl whitespace-nowrap shadow-sm">
-                Cài đặt
+              <button 
+                onClick={() => setDeferredPrompt(null)}
+                className="px-4 py-1 text-stone-400 font-medium text-xs"
+              >
+                Đóng
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Install PWA Prompt (iOS) */}
+      <AnimatePresence>
+        {showIosPrompt && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-20 left-4 right-4 z-50 bg-white p-4 rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-4 border-indigo-100 flex flex-col items-center gap-3 max-w-lg mx-auto text-center"
+          >
+            <h4 className="font-black text-indigo-500 text-lg">Cài đặt Ứng dụng (iOS)</h4>
+            <p className="text-sm text-stone-600 font-medium leading-tight">
+              Để chơi toàn màn hình siêu mượt, hãy:<br/>
+              1. Bấm nút <b>Chia sẻ</b> (Share) ở dưới cùng màn hình.<br/>
+              2. Chọn <b>Thêm vào MH chính</b> (Add to Home Screen).
+            </p>
+            <button 
+              onClick={() => setShowIosPrompt(false)}
+              className="mt-2 px-8 py-2 bg-stone-100 text-stone-500 rounded-xl font-bold text-sm hover:bg-stone-200"
+            >
+              Đã hiểu
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
