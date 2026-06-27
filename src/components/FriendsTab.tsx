@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { Users, UserPlus, Check, X, Search, UserCircle2 } from 'lucide-react';
+import { Users, UserPlus, Check, X, Search, UserCircle2, Trash2, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FriendCollectionModal } from './FriendCollectionModal';
 
 export const FriendsTab: React.FC = () => {
-  const { user, friends, friendRequests, fetchFriends, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useGameStore();
+  const { user, friends, friendRequests, fetchFriends, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, unfriend } = useGameStore();
   const [searchEmail, setSearchEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [viewingFriend, setViewingFriend] = useState<{id: string, name: string} | null>(null);
 
   useEffect(() => {
     fetchFriends();
@@ -131,13 +133,35 @@ export const FriendsTab: React.FC = () => {
               const otherPerson = isSender ? friend.receiver : friend.sender;
               
               return (
-                <div key={friend.id} className="bg-white p-4 rounded-2xl border-2 border-stone-100 flex items-center gap-3 hover:border-indigo-100 transition-colors">
-                  <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center border-2 border-indigo-100">
-                    <UserCircle2 className="w-7 h-7 text-indigo-300" />
+                <div key={friend.id} className="bg-white p-4 rounded-2xl border-2 border-stone-100 flex flex-col gap-4 shadow-sm hover:border-indigo-100 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center border-2 border-indigo-100">
+                      <UserCircle2 className="w-7 h-7 text-indigo-300" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-stone-700">{otherPerson.username}</div>
+                      <div className="text-xs font-medium text-stone-400">{otherPerson.email}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-stone-700">{otherPerson.username}</div>
-                    <div className="text-xs font-medium text-stone-400">{otherPerson.email}</div>
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setViewingFriend({ id: isSender ? friend.receiver_id : friend.sender_id, name: otherPerson.username })}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-colors"
+                    >
+                      <Eye className="w-4 h-4" /> Xem Túi Đồ
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm(`Bạn có chắc chắn muốn hủy kết bạn với ${otherPerson.username}?`)) {
+                          unfriend(friend.id);
+                        }
+                      }}
+                      className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-colors"
+                      title="Hủy kết bạn"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               );
@@ -145,6 +169,14 @@ export const FriendsTab: React.FC = () => {
           </div>
         )}
       </div>
+
+      {viewingFriend && (
+        <FriendCollectionModal 
+          friendId={viewingFriend.id} 
+          friendName={viewingFriend.name} 
+          onClose={() => setViewingFriend(null)} 
+        />
+      )}
     </div>
   );
 };

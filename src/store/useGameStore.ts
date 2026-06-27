@@ -72,6 +72,7 @@ interface GameState {
   sendFriendRequest: (email: string) => Promise<{ success: boolean; message: string }>;
   acceptFriendRequest: (id: string) => Promise<boolean>;
   rejectFriendRequest: (id: string) => Promise<boolean>;
+  unfriend: (id: string) => Promise<boolean>;
   addAnimon: (animon: Omit<Animon, 'id' | 'imageUrl' | 'createdAt'>, file: File) => Promise<boolean>;
   listAnimonForSale: (animonId: string, price: number) => Promise<boolean>;
   quickSellAnimon: (animonId: string) => Promise<boolean>;
@@ -387,6 +388,19 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   rejectFriendRequest: async (id: string) => {
+    const { error } = await supabase
+      .from('friendships')
+      .delete()
+      .eq('id', id);
+      
+    if (!error) {
+      get().fetchFriends();
+      return true;
+    }
+    return false;
+  },
+
+  unfriend: async (id: string) => {
     const { error } = await supabase
       .from('friendships')
       .delete()

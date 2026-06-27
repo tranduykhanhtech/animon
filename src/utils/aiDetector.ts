@@ -62,8 +62,11 @@ export const isAnimal = async (imageElement: HTMLImageElement | HTMLVideoElement
     for (const p of predictions) {
       const classes = p.className.toLowerCase().split(', ');
       for (const cls of classes) {
-        // Kiểm tra xem lớp dự đoán có chứa bất kỳ từ khóa nào trong danh sách không
-        if (animalKeywords.some(keyword => cls.includes(keyword))) {
+        // Kiểm tra xem lớp dự đoán có chứa bất kỳ từ khóa nào trong danh sách không bằng cách so khớp từ nguyên vẹn
+        if (animalKeywords.some(keyword => {
+          const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+          return regex.test(cls);
+        })) {
           return { isAnimal: true, topGuess };
         }
       }
