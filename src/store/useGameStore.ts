@@ -108,7 +108,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   fetchProfile: async () => {
     const user = get().user;
     if (!user) return;
-        const { data, error } = await supabase
+        const { data } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)

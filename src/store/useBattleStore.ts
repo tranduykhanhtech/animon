@@ -224,7 +224,7 @@ function joinBattleRoom(roomId: string, myAnimon: Animon, username: string, init
       }
     })
     .on('broadcast', { event: 'attack' }, (payload) => {
-      const { damage, isCrit, isDodge, vampireHeal, thornsDamage, attacker } = payload.payload;
+      const { damage, isCrit, isDodge, vampireHeal, thornsDamage } = payload.payload;
       const me = useBattleStore.getState().me;
       const opponent = useBattleStore.getState().opponent;
       if (!me || !opponent) return;
