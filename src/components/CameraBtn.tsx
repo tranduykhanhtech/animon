@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, X, Aperture, AlertCircle } from 'lucide-react';
+import { Camera, X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { isAnimal, loadAIModel } from '../utils/aiDetector';

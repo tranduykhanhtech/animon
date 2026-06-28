@@ -23,11 +23,11 @@ export const AuthScreen: React.FC = () => {
       } else {
         if (!username.trim()) throw new Error('Vui lòng nhập tên Animon Trainer của bạn!');
         
-        const { error: signUpError, data } = await supabase.auth.signUp({ 
+        const { error: signUpError } = await supabase.auth.signUp({ 
           email, 
           password 
         });
-        
+        if (signUpError) throw signUpError;
       }
     } catch (err: any) {
       let errorMessage = err.message || 'Có lỗi xảy ra, vui lòng thử lại!';

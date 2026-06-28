@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
         body: data.body || 'Bạn có một thông báo mới từ Animon!',
         icon: data.icon || '/animon-logo.svg',
         badge: '/animon-logo.svg',
-        vibrate: [100, 50, 100],
+
         data: {
           url: data.data?.url || '/',
         },
