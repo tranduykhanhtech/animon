@@ -7,7 +7,12 @@ import { DECORATIONS } from '../constants/decorations';
 import { getRankInfo } from '../utils/rank';
 
 export const Marketplace: React.FC = () => {
-  const { marketplace, fetchMarketplace, buyAnimon, listAnimonForSale, user, coins, rank_points, inventory, unlockedItems, buyDecoration, equipDecoration, equippedFrame, equippedBackground, equippedTitle, equippedMarker } = useGameStore();
+  const { 
+    marketplace, fetchMarketplace, buyAnimon, listAnimonForSale, 
+    user, coins, rank_points, inventory, unlockedItems, 
+    buyDecoration, equipDecoration, equippedFrame, equippedBackground, equippedTitle, equippedMarker,
+    baitBasic, baitGood, baitPremium, buyBait
+  } = useGameStore();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'market' | 'shop'>('market');
   
@@ -323,6 +328,92 @@ export const Marketplace: React.FC = () => {
             </div>
           </div>
 
+          {/* BAITS SECTION */}
+          <div className="mb-8">
+            <h3 className="font-black text-lg text-stone-600 mb-4 px-2">Vật Phẩm Sinh Tồn</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Basic Bait */}
+              <div className="bg-white rounded-3xl p-6 border-4 border-stone-100 shadow-sm flex flex-col hover:border-amber-100 transition-colors">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-black text-xl text-stone-800">Mồi Thường</h3>
+                    <span className="text-xs font-bold px-2 py-1 bg-stone-100 text-stone-500 rounded-lg">Cơ bản</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-xl text-stone-700">x{baitBasic}</div>
+                    <div className="text-xs font-bold text-stone-400">Đang có</div>
+                  </div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium flex-1 mb-6">
+                  Tỉ lệ bắt thành công 30%. Phù hợp bắt Animon cấp thấp.
+                </p>
+                <button
+                  onClick={async () => {
+                    const res = await buyBait('basic', 1, 10);
+                    if (res.success) alert(res.message); else alert("Lỗi: " + res.message);
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black text-lg rounded-2xl shadow-[0_4px_0_rgba(217,119,6,0.2)] hover:-translate-y-1 hover:shadow-[0_6px_0_rgba(217,119,6,0.2)] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 border-2 border-white"
+                >
+                  Mua <Coins className="w-5 h-5 fill-white" /> 10
+                </button>
+              </div>
+
+              {/* Good Bait */}
+              <div className="bg-white rounded-3xl p-6 border-4 border-stone-100 shadow-sm flex flex-col hover:border-emerald-100 transition-colors">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-black text-xl text-stone-800">Mồi Ngon</h3>
+                    <span className="text-xs font-bold px-2 py-1 bg-emerald-100 text-emerald-600 rounded-lg">Hiếm</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-xl text-emerald-700">x{baitGood}</div>
+                    <div className="text-xs font-bold text-stone-400">Đang có</div>
+                  </div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium flex-1 mb-6">
+                  Tỉ lệ bắt thành công 60%. Hàng chất lượng cao.
+                </p>
+                <button
+                  onClick={async () => {
+                    const res = await buyBait('good', 1, 100);
+                    if (res.success) alert(res.message); else alert("Lỗi: " + res.message);
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-black text-lg rounded-2xl shadow-[0_4px_0_rgba(16,185,129,0.2)] hover:-translate-y-1 hover:shadow-[0_6px_0_rgba(16,185,129,0.2)] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 border-2 border-white"
+                >
+                  Mua <Coins className="w-5 h-5 fill-white" /> 100
+                </button>
+              </div>
+
+              {/* Premium Bait */}
+              <div className="bg-white rounded-3xl p-6 border-4 border-stone-100 shadow-sm flex flex-col hover:border-violet-100 transition-colors">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-black text-xl text-stone-800">Mồi Thượng Hạng</h3>
+                    <span className="text-xs font-bold px-2 py-1 bg-violet-100 text-violet-600 rounded-lg">Cực Hiếm</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-xl text-violet-700">x{baitPremium}</div>
+                    <div className="text-xs font-bold text-stone-400">Đang có</div>
+                  </div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium flex-1 mb-6">
+                  Tỉ lệ bắt thành công 80%. Đừng để sổng mất Animon hiếm!
+                </p>
+                <button
+                  onClick={async () => {
+                    const res = await buyBait('premium', 1, 250);
+                    if (res.success) alert(res.message); else alert("Lỗi: " + res.message);
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-black text-lg rounded-2xl shadow-[0_4px_0_rgba(139,92,246,0.2)] hover:-translate-y-1 hover:shadow-[0_6px_0_rgba(139,92,246,0.2)] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 border-2 border-white"
+                >
+                  Mua <Coins className="w-5 h-5 fill-white" /> 250
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* DECORATIONS SECTION */}
+          <h3 className="font-black text-lg text-stone-600 mb-4 px-2">Cửa Hàng Trang Trí</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {DECORATIONS.map(item => {
               const isOwned = unlockedItems.includes(item.id);

@@ -62,6 +62,10 @@ interface GameState {
   friendRequests: FriendRequest[];
   coins: number;
   rank_points: number;
+  baitBasic: number;
+  baitGood: number;
+  baitPremium: number;
+  lastDailyReward: string | null;
   leaderboardWealth: LeaderboardUser[];
   leaderboardCollector: LeaderboardUser[];
   leaderboardPower: LeaderboardUser[];
@@ -103,6 +107,10 @@ interface GameState {
   fetchDecorations: () => Promise<void>;
   buyDecoration: (itemId: string, price: number) => Promise<{ success: boolean; message: string }>;
   equipDecoration: (itemId: string, type: string) => Promise<{ success: boolean; message: string }>;
+  
+  checkAndClaimDailyReward: () => Promise<{ success: boolean; message: string }>;
+  buyBait: (type: 'basic' | 'good' | 'premium', amount: number, price: number) => Promise<{ success: boolean; message: string }>;
+  useBait: (type: 'basic' | 'good' | 'premium') => Promise<boolean>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -115,6 +123,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   friendRequests: [],
   coins: 0,
   rank_points: 0,
+  baitBasic: 0,
+  baitGood: 0,
+  baitPremium: 0,
+  lastDailyReward: null,
   leaderboardWealth: [],
   leaderboardCollector: [],
   leaderboardPower: [],
@@ -140,7 +152,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ 
         inventory: [], coins: 0, username: null, isLoading: false, 
         friends: [], friendRequests: [], unlockedAchievements: [], claimedAchievements: [],
-        unlockedItems: [], equippedFrame: null, equippedBackground: null, equippedTitle: null, equippedMarker: null
+        unlockedItems: [], equippedFrame: null, equippedBackground: null, equippedTitle: null, equippedMarker: null,
+        baitBasic: 0, baitGood: 0, baitPremium: 0, lastDailyReward: null
       });
     }
   },
@@ -163,6 +176,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           equippedBackground: data.equipped_background,
           equippedTitle: data.equipped_title,
           equippedMarker: data.equipped_marker,
+          baitBasic: data.bait_basic || 0,
+          baitGood: data.bait_good || 0,
+          baitPremium: data.bait_premium || 0,
+          lastDailyReward: data.last_daily_reward,
           isLoading: false 
         });
       } else {
@@ -812,5 +829,100 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     return { success: true, message: 'Trang bị thành công!' };
+  },
+
+  checkAndClaimDailyReward: async () => {
+    const { user, lastDailyReward, baitBasic } = get();
+    if (!user) return { success: false, message: 'Chưa đăng nhập' };
+
+    const today = new Date().toISOString().split('T')[0];
+    const lastRewardDay = lastDailyReward ? new Date(lastDailyReward).toISOString().split('T')[0] : null;
+
+    if (lastRewardDay === today) {
+      return { success: false, message: 'Bạn đã nhận quà hôm nay rồi!' };
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update({ 
+        bait_basic: baitBasic + 5,
+        last_daily_reward: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (error) {
+      console.error(error);
+      return { success: false, message: 'Lỗi nhận quà' };
+    }
+
+    set({ 
+      baitBasic: baitBasic + 5,
+      lastDailyReward: new Date().toISOString()
+    });
+    return { success: true, message: 'Nhận thành công 5 mồi thường!' };
+  },
+
+  buyBait: async (type, amount, price) => {
+    const { user, coins, baitBasic, baitGood, baitPremium } = get();
+    if (!user) return { success: false, message: 'Chưa đăng nhập' };
+    if (coins < price) return { success: false, message: 'Không đủ Coins' };
+
+    const updateData: any = { coins: coins - price };
+    if (type === 'basic') updateData.bait_basic = baitBasic + amount;
+    if (type === 'good') updateData.bait_good = baitGood + amount;
+    if (type === 'premium') updateData.bait_premium = baitPremium + amount;
+
+    const { error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', user.id);
+
+    if (error) {
+      console.error(error);
+      return { success: false, message: 'Lỗi khi mua' };
+    }
+
+    set({ 
+      coins: coins - price,
+      ...(type === 'basic' && { baitBasic: baitBasic + amount }),
+      ...(type === 'good' && { baitGood: baitGood + amount }),
+      ...(type === 'premium' && { baitPremium: baitPremium + amount })
+    });
+
+    return { success: true, message: 'Mua mồi thành công!' };
+  },
+
+  useBait: async (type) => {
+    const { user, baitBasic, baitGood, baitPremium } = get();
+    if (!user) return false;
+
+    let canUse = false;
+    let updateData: any = {};
+    if (type === 'basic' && baitBasic > 0) {
+      canUse = true;
+      updateData.bait_basic = baitBasic - 1;
+    } else if (type === 'good' && baitGood > 0) {
+      canUse = true;
+      updateData.bait_good = baitGood - 1;
+    } else if (type === 'premium' && baitPremium > 0) {
+      canUse = true;
+      updateData.bait_premium = baitPremium - 1;
+    }
+
+    if (!canUse) return false;
+
+    const { error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', user.id);
+
+    if (error) return false;
+
+    set({
+      ...(type === 'basic' && { baitBasic: baitBasic - 1 }),
+      ...(type === 'good' && { baitGood: baitGood - 1 }),
+      ...(type === 'premium' && { baitPremium: baitPremium - 1 })
+    });
+    return true;
   }
 }));

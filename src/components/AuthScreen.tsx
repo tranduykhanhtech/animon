@@ -25,7 +25,12 @@ export const AuthScreen: React.FC = () => {
         
         const { error: signUpError } = await supabase.auth.signUp({ 
           email, 
-          password 
+          password,
+          options: {
+            data: {
+              username: username.trim()
+            }
+          }
         });
         if (signUpError) throw signUpError;
       }

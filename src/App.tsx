@@ -92,6 +92,14 @@ function App() {
     
     fetchFriends(); // Fetch friends when user logs in
     
+    // Daily Reward
+    useGameStore.getState().checkAndClaimDailyReward().then(res => {
+      if (res.success) {
+        // Có thể thay bằng custom toast nếu muốn đẹp hơn
+        alert('🎁 Quà Tặng Đăng Nhập: ' + res.message);
+      }
+    });
+    
     const channel = supabase.channel(`user_invites_${user.id}`);
     channel
       .on('broadcast', { event: 'battle_invite' }, (payload) => {

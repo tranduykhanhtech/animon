@@ -17,23 +17,9 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [targetSize, setTargetSize] = useState(150);
-  const sizeRef = useRef(150);
+  const [selectedBait, setSelectedBait] = useState<'basic' | 'good' | 'premium'>('basic');
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      // Sine wave between 50 and 150
-      const phase = (Date.now() - startTime) / 800; // Speed of pulsing
-      const size = 60 + Math.abs(Math.sin(phase * Math.PI)) * 90;
-      sizeRef.current = size;
-      setTargetSize(size);
-    }, 16);
-    return () => clearInterval(interval);
-  }, [isOpen]);
-
-  const { inventory } = useGameStore();
+  const { inventory, baitBasic, baitGood, baitPremium, useBait } = useGameStore();
 
   const startCamera = async () => {
     setIsOpen(true);
@@ -82,10 +68,27 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
   }, [stream]);
 
   const capturePhoto = async () => {
-    // Check Mini-game accuracy
-    const currentSize = sizeRef.current;
-    if (currentSize > 80) {
-      setError('Mồi nhử trượt rồi! Bạn phải thả mồi lúc tâm ngắm thu nhỏ nhất (màu xanh lá).');
+    // 1. Kiểm tra xem còn mồi không
+    const remainingBait = selectedBait === 'basic' ? baitBasic : selectedBait === 'good' ? baitGood : baitPremium;
+    if (remainingBait <= 0) {
+      setError('Bạn đã hết loại mồi này! Hãy vào Cửa hàng để mua thêm.');
+      return;
+    }
+
+    // 2. Trừ mồi
+    const successBait = await useBait(selectedBait);
+    if (!successBait) {
+      setError('Lỗi khi sử dụng mồi, vui lòng thử lại.');
+      return;
+    }
+
+    // 3. Tính tỉ lệ thành công dựa trên mồi
+    let catchChance = 0.3; // Basic
+    if (selectedBait === 'good') catchChance = 0.6;
+    if (selectedBait === 'premium') catchChance = 0.8;
+
+    if (Math.random() > catchChance) {
+      setError('Trượt rồi! Động vật đã chạy mất, bạn hãy thử lại nhé.');
       return;
     }
 
@@ -221,31 +224,47 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
                     className="w-full h-full object-cover"
                   />
                   
-                  {/* Cute Targeting Overlay */}
+                  {/* Static Targeting Overlay */}
                   <div className="absolute inset-x-8 inset-y-16 border-4 border-dashed border-white/40 rounded-3xl pointer-events-none" />
-                  
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
-                    <div 
-                      className={`rounded-full border-[6px] transition-colors ${targetSize <= 80 ? 'border-emerald-400 bg-emerald-400/20' : 'border-rose-400/80 bg-rose-400/10'}`}
-                      style={{ width: `${targetSize}px`, height: `${targetSize}px` }}
-                    />
-                    <div className="absolute w-2 h-2 bg-white rounded-full" />
-                  </div>
                 </div>
 
                 <canvas ref={canvasRef} className="hidden" />
 
-                {/* Capture Button */}
-                <div className="absolute bottom-10 flex flex-col items-center justify-center w-full z-20">
-                  <p className="text-white font-black drop-shadow-md mb-2 bg-stone-900/40 px-4 py-1 rounded-full text-sm">
-                    Canh vòng tròn thu nhỏ rồi ném mồi!
-                  </p>
+                {/* Bait Selection & Capture Button */}
+                <div className="absolute bottom-6 flex flex-col items-center w-full z-20 px-6">
+                  <div className="flex gap-3 mb-4 w-full max-w-sm justify-between bg-stone-900/40 p-2 rounded-2xl backdrop-blur-sm border-2 border-white/20">
+                    {/* Basic */}
+                    <button 
+                      onClick={() => setSelectedBait('basic')}
+                      className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl transition-colors ${selectedBait === 'basic' ? 'bg-amber-400 text-amber-950 shadow-sm' : 'text-stone-300 hover:bg-white/10'}`}
+                    >
+                      <span className="text-xs font-bold">Thường</span>
+                      <span className="font-black">x{baitBasic}</span>
+                    </button>
+                    {/* Good */}
+                    <button 
+                      onClick={() => setSelectedBait('good')}
+                      className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl transition-colors ${selectedBait === 'good' ? 'bg-emerald-400 text-emerald-950 shadow-sm' : 'text-stone-300 hover:bg-white/10'}`}
+                    >
+                      <span className="text-xs font-bold">Ngon</span>
+                      <span className="font-black">x{baitGood}</span>
+                    </button>
+                    {/* Premium */}
+                    <button 
+                      onClick={() => setSelectedBait('premium')}
+                      className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl transition-colors ${selectedBait === 'premium' ? 'bg-violet-400 text-violet-950 shadow-sm' : 'text-stone-300 hover:bg-white/10'}`}
+                    >
+                      <span className="text-xs font-bold">Thượng</span>
+                      <span className="font-black">x{baitPremium}</span>
+                    </button>
+                  </div>
+
                   <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={capturePhoto}
                     disabled={isAnalyzing}
-                    className={`px-8 py-4 bg-emerald-500 text-white font-black text-xl rounded-full flex items-center gap-2 shadow-[0_6px_0_rgb(16,185,129)] border-4 border-white ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-1 hover:shadow-[0_8px_0_rgb(16,185,129)] active:translate-y-0 active:shadow-none transition-all'}`}
+                    className={`w-full max-w-sm py-4 bg-emerald-500 text-white font-black text-xl rounded-2xl flex items-center justify-center gap-2 shadow-[0_6px_0_rgb(16,185,129)] border-4 border-white ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-1 hover:shadow-[0_8px_0_rgb(16,185,129)] active:translate-y-0 active:shadow-none transition-all'}`}
                   >
                     🥩 Ném Mồi
                   </motion.button>
