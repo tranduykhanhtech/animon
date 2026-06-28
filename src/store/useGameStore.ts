@@ -182,6 +182,12 @@ export const useGameStore = create<GameState>((set, get) => ({
           lastDailyReward: data.last_daily_reward,
           isLoading: false 
         });
+        
+        get().checkAndClaimDailyReward().then(res => {
+          if (res.success) {
+            alert('🎁 Quà Tặng Đăng Nhập: ' + res.message);
+          }
+        });
       } else {
         set({ isLoading: false });
       }
