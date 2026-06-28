@@ -13,7 +13,7 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
-      includeAssets: ['favicon.ico', 'animon-logo.svg'],
+      includeAssets: ['favicon.ico', 'animon-logo.png'],
       manifest: {
         name: 'Animon',
         short_name: 'Animon',
@@ -23,19 +23,14 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'animon-logo.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml'
+            src: 'animon-logo.png',
+            sizes: '1024x1024',
+            type: 'image/png'
           },
           {
-            src: 'animon-logo.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml'
-          },
-          {
-            src: 'animon-logo.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
+            src: 'animon-logo.png',
+            sizes: '1024x1024',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]

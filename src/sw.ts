@@ -13,8 +13,8 @@ self.addEventListener('push', (event) => {
       
       const options: NotificationOptions = {
         body: data.body || 'Bạn có một thông báo mới từ Animon!',
-        icon: data.icon || '/animon-logo.svg',
-        badge: '/animon-logo.svg',
+        icon: data.icon || '/animon-logo.png',
+        badge: '/animon-logo.png',
 
         data: {
           url: data.data?.url || '/',
