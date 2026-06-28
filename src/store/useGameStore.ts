@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CardStats } from '../utils/cardLogic';
 import { supabase } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
+import { ACHIEVEMENTS } from '../constants/achievements';
 
 export interface Animon {
   id: string; // unique local or DB id
@@ -65,6 +66,15 @@ interface GameState {
   matchHistory: MatchHistoryEntry[];
   isLoading: boolean;
   
+  unlockedAchievements: string[];
+  claimedAchievements: string[];
+  
+  unlockedItems: string[];
+  equippedFrame: string | null;
+  equippedBackground: string | null;
+  equippedTitle: string | null;
+  equippedMarker: string | null;
+
   setSession: (session: Session | null) => void;
   fetchProfile: () => Promise<void>;
   fetchInventory: () => Promise<void>;
@@ -83,6 +93,14 @@ interface GameState {
   buyAnimon: (tradeId: string) => Promise<boolean>;
   cancelTrade: (tradeId: string, animonId: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  
+  fetchAchievements: () => Promise<void>;
+  claimAchievement: (achievementId: string) => Promise<boolean>;
+  checkAchievements: () => Promise<void>;
+  
+  fetchDecorations: () => Promise<void>;
+  buyDecoration: (itemId: string, price: number) => Promise<{ success: boolean; message: string }>;
+  equipDecoration: (itemId: string, type: 'frame' | 'background') => Promise<{ success: boolean; message: string }>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -98,6 +116,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   leaderboard: [],
   matchHistory: [],
   isLoading: true,
+  unlockedAchievements: [],
+  claimedAchievements: [],
+  unlockedItems: [],
+  equippedFrame: null,
+  equippedBackground: null,
+  equippedTitle: null,
+  equippedMarker: null,
 
   setSession: (session) => {
     set({ session, user: session?.user || null });
@@ -105,8 +130,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().fetchProfile();
       get().fetchInventory();
       get().fetchFriends();
+      get().fetchAchievements();
+      get().fetchDecorations();
     } else {
-      set({ inventory: [], coins: 0, username: null, isLoading: false, friends: [], friendRequests: [] });
+      set({ 
+        inventory: [], coins: 0, username: null, isLoading: false, 
+        friends: [], friendRequests: [], unlockedAchievements: [], claimedAchievements: [],
+        unlockedItems: [], equippedFrame: null, equippedBackground: null, equippedTitle: null, equippedMarker: null
+      });
     }
   },
 
@@ -123,7 +154,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({ 
           username: data.username,
           coins: data.coins,
-          rank_points: data.rank_points || 0,
+          rank_points: data.rank_points,
+          equippedFrame: data.equipped_frame,
+          equippedBackground: data.equipped_background,
+          equippedTitle: data.equipped_title,
+          equippedMarker: data.equipped_marker,
           isLoading: false 
         });
       } else {
@@ -224,6 +259,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
 
       set((state) => ({ inventory: [newAnimon, ...state.inventory] }));
+      get().checkAchievements();
       return true;
 
     } catch (err) {
@@ -443,7 +479,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       .eq('id', animonId);
 
     if (!error) {
-      get().fetchInventory(); // Reload inventory
+      await get().fetchInventory(); // Reload inventory
+      get().checkAchievements();
       return { success: true, message: currentStatus ? 'Đã gỡ khỏi tủ kính.' : 'Đã đưa vào tủ kính trưng bày!' };
     }
     return { success: false, message: 'Có lỗi xảy ra khi cập nhật tủ kính.' };
@@ -553,5 +590,221 @@ export const useGameStore = create<GameState>((set, get) => ({
   signOut: async () => {
     await supabase.auth.signOut();
     set({ session: null, user: null, inventory: [], coins: 0, rank_points: 0, username: null, leaderboard: [], matchHistory: [] });
+  },
+  
+  fetchAchievements: async () => {
+    const user = get().user;
+    if (!user) return;
+    const { data } = await supabase
+      .from('user_achievements')
+      .select('*')
+      .eq('user_id', user.id);
+    
+    if (data) {
+      set({
+        unlockedAchievements: data.map(a => a.achievement_id),
+        claimedAchievements: data.filter(a => a.is_claimed).map(a => a.achievement_id)
+      });
+    }
+    // Also check immediately in case they qualify for new ones
+    get().checkAchievements();
+  },
+
+  claimAchievement: async (achievementId: string) => {
+    const user = get().user;
+    if (!user) return false;
+
+    const achievementConfig = ACHIEVEMENTS.find(a => a.id === achievementId);
+    if (!achievementConfig) return false;
+    
+    const { unlockedAchievements, claimedAchievements } = get();
+    if (!unlockedAchievements.includes(achievementId) || claimedAchievements.includes(achievementId)) {
+      return false; // Not unlocked or already claimed
+    }
+
+    const { error } = await supabase
+      .from('user_achievements')
+      .update({ is_claimed: true })
+      .eq('user_id', user.id)
+      .eq('achievement_id', achievementId);
+
+    if (error) return false;
+
+    // Update local state and coins
+    const newCoins = get().coins + achievementConfig.rewardCoins;
+    set({
+      claimedAchievements: [...claimedAchievements, achievementId],
+      coins: newCoins
+    });
+    
+    await supabase.rpc('add_user_coins', {
+       amount: achievementConfig.rewardCoins
+    });
+
+    return true;
+  },
+
+  checkAchievements: async () => {
+    const user = get().user;
+    if (!user) return;
+    
+    const { inventory, coins, friends, unlockedAchievements, matchHistory } = get();
+    const newUnlocks: string[] = [];
+
+    // Pre-calculate stats for checking
+    const totalCaught = inventory.length;
+    const epicCount = inventory.filter(a => a.stats.rarity === 'Epic').length;
+    const legendaryCount = inventory.filter(a => a.stats.rarity === 'Legendary').length;
+    const fireCount = inventory.filter(a => a.stats.element === 'Fire').length;
+    const waterCount = inventory.filter(a => a.stats.element === 'Water').length;
+    const grassCount = inventory.filter(a => a.stats.element === 'Grass').length;
+    const electricCount = inventory.filter(a => a.stats.element === 'Electric').length;
+    const earthCount = inventory.filter(a => a.stats.element === 'Earth').length;
+    const showcasedCount = inventory.filter(a => a.is_showcased).length;
+    const wins = matchHistory ? matchHistory.filter(m => m.winner_id === user.id).length : 0;
+    const totalFriends = friends.length;
+
+    // Helper to check time
+    const hasCatchInHourRange = (start: number, end: number) => {
+      return inventory.some(a => {
+        const h = new Date(a.createdAt).getHours();
+        if (start > end) { // e.g. 22 to 4
+          return h >= start || h < end;
+        }
+        return h >= start && h < end;
+      });
+    };
+
+    // Dictionary of conditions
+    const conditions: Record<string, boolean> = {
+      // Bắt Animon
+      'first_catch': totalCaught >= 1,
+      'catch_10': totalCaught >= 10,
+      'catch_50': totalCaught >= 50,
+      'catch_100': totalCaught >= 100,
+      'catch_200': totalCaught >= 200,
+      'catch_500': totalCaught >= 500,
+      // Độ hiếm
+      'epic_1': epicCount >= 1,
+      'epic_10': epicCount >= 10,
+      'epic_50': epicCount >= 50,
+      'catch_legendary': legendaryCount >= 1,
+      'legendary_5': legendaryCount >= 5,
+      'legendary_10': legendaryCount >= 10,
+      // Hệ
+      'element_fire_5': fireCount >= 5,
+      'element_fire_20': fireCount >= 20,
+      'element_fire_50': fireCount >= 50,
+      'element_water_5': waterCount >= 5,
+      'element_water_20': waterCount >= 20,
+      'element_water_50': waterCount >= 50,
+      'element_grass_5': grassCount >= 5,
+      'element_grass_20': grassCount >= 20,
+      'element_grass_50': grassCount >= 50,
+      'element_electric_5': electricCount >= 5,
+      'element_electric_20': electricCount >= 20,
+      'element_electric_50': electricCount >= 50,
+      'element_earth_5': earthCount >= 5,
+      'element_earth_20': earthCount >= 20,
+      'element_earth_50': earthCount >= 50,
+      // Trưng bày
+      'showcase_1': showcasedCount >= 1,
+      'showcase_5': showcasedCount >= 5,
+      // Tài chính
+      'rich_1000': coins >= 1000,
+      'rich_5000': coins >= 5000,
+      'rich_20000': coins >= 20000,
+      'rich_50000': coins >= 50000,
+      'rich_100000': coins >= 100000,
+      // Bạn bè
+      'first_friend': totalFriends >= 1,
+      'friend_5': totalFriends >= 5,
+      'friend_20': totalFriends >= 20,
+      'friend_50': totalFriends >= 50,
+      // Chiến đấu
+      'first_win': wins >= 1,
+      'win_10': wins >= 10,
+      'win_50': wins >= 50,
+      'win_100': wins >= 100,
+      // Thời gian
+      'night_owl': hasCatchInHourRange(22, 4),
+      'early_bird': hasCatchInHourRange(4, 7),
+      'sun_baker': hasCatchInHourRange(11, 13),
+      'sunset_lover': hasCatchInHourRange(17, 19),
+    };
+
+    // Evaluate all achievements configured in constants
+    ACHIEVEMENTS.forEach(ach => {
+      if (!unlockedAchievements.includes(ach.id) && conditions[ach.id]) {
+        newUnlocks.push(ach.id);
+      }
+    });
+
+    if (newUnlocks.length > 0) {
+      // Insert new achievements
+      const inserts = newUnlocks.map(ach_id => ({
+        user_id: user.id,
+        achievement_id: ach_id
+      }));
+      
+      const { error } = await supabase.from('user_achievements').insert(inserts);
+      if (!error) {
+        set({ unlockedAchievements: [...unlockedAchievements, ...newUnlocks] });
+      }
+    }
+  },
+
+  fetchDecorations: async () => {
+    const user = get().user;
+    if (!user) return;
+    const { data } = await supabase.from('user_items').select('item_id').eq('user_id', user.id);
+    if (data) {
+      set({ unlockedItems: data.map(d => d.item_id) });
+    }
+  },
+
+  buyDecoration: async (itemId: string, price: number) => {
+    const { user, coins, unlockedItems } = get();
+    if (!user) return { success: false, message: 'Chưa đăng nhập' };
+    if (coins < price) return { success: false, message: 'Không đủ Coins' };
+    if (unlockedItems.includes(itemId)) return { success: false, message: 'Đã sở hữu' };
+
+    const { error } = await supabase.rpc('buy_decoration', { p_item_id: itemId, p_price: price });
+    
+    if (error) {
+      console.error(error);
+      return { success: false, message: 'Lỗi khi mua' };
+    }
+
+    set({ 
+      coins: coins - price,
+      unlockedItems: [...unlockedItems, itemId]
+    });
+    
+    return { success: true, message: 'Mua thành công!' };
+  },
+
+  equipDecoration: async (itemId: string, type: string) => {
+    const { user } = get();
+    if (!user) return { success: false, message: 'Chưa đăng nhập' };
+
+    const { error } = await supabase.rpc('equip_decoration', { p_item_id: itemId, p_type: type });
+    
+    if (error) {
+      console.error(error);
+      return { success: false, message: 'Lỗi khi trang bị' };
+    }
+
+    if (type === 'frame') {
+      set({ equippedFrame: itemId === 'default' ? null : itemId });
+    } else if (type === 'background') {
+      set({ equippedBackground: itemId === 'default' ? null : itemId });
+    } else if (type === 'title') {
+      set({ equippedTitle: itemId === 'default' ? null : itemId });
+    } else if (type === 'marker') {
+      set({ equippedMarker: itemId === 'default' ? null : itemId });
+    }
+
+    return { success: true, message: 'Trang bị thành công!' };
   }
 }));

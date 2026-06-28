@@ -10,15 +10,18 @@ import { FriendsTab } from './components/FriendsTab';
 import { Leaderboard } from './components/Leaderboard';
 import { MatchHistory } from './components/MatchHistory';
 import { MapTab } from './components/MapTab';
+import { DECORATIONS } from './constants/decorations';
+import { AchievementsModal } from './components/AchievementsModal';
 import { useGameStore } from './store/useGameStore';
 import { useBattleStore } from './store/useBattleStore';
 import { generateCardStats } from './utils/cardLogic';
 import { supabase } from './lib/supabase';
-import { Coins, Sparkles, PawPrint, LogOut, Loader2, Tag, Store, UserCircle2, X, Swords } from 'lucide-react';
+import { Coins, Sparkles, PawPrint, LogOut, Loader2, Tag, Store, UserCircle2, X, Swords, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
-  const { session, user, username, inventory, coins, isLoading, setSession, signOut, addAnimon, listAnimonForSale, fetchFriends } = useGameStore();
+  const { session, user, username, inventory, coins, isLoading, setSession, signOut, addAnimon, listAnimonForSale, fetchFriends, unlockedAchievements, claimedAchievements, equippedFrame, equippedBackground, equippedTitle } = useGameStore();
+  const unclaimedAchievementsCount = unlockedAchievements.length - claimedAchievements.length;
   const [newlyCaught, setNewlyCaught] = useState<{ file: File, imageUrl: string, name: string, stats: any, lat?: number, lng?: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentTab, setCurrentTab] = useState<TabType>('collection');
@@ -28,6 +31,7 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
   const [viewingAnimon, setViewingAnimon] = useState<any>(null);
+  const [showAchievements, setShowAchievements] = useState(false);
 
   // Battle Invite State
   const [incomingInvite, setIncomingInvite] = useState<{ inviterId: string, inviterUsername: string, roomId: string } | null>(null);
@@ -226,7 +230,12 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* Achievements Modal */}
+      {showAchievements && (
+        <AchievementsModal onClose={() => setShowAchievements(false)} />
+      )}
+
+      {/* Main Content */}
       <header className="sticky top-0 z-30 bg-[#FFF8F0]/90 backdrop-blur-md border-b-4 border-amber-100 mb-6">
         <div className="max-w-5xl mx-auto px-4 h-20 flex items-center justify-between">
           
@@ -234,8 +243,14 @@ function App() {
             onClick={() => setShowProfile(true)}
             className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity rounded-2xl p-1"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center shadow-sm border-2 border-white">
-              <PawPrint className="w-7 h-7 text-rose-500" />
+            <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center shadow-sm border-2 border-white relative ${DECORATIONS.find(d => d.id === equippedFrame)?.styleClass || ''}`}>
+              <PawPrint className="w-7 h-7 text-rose-500 relative z-10" />
+              {unclaimedAchievementsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 border-2 border-white"></span>
+                </span>
+              )}
             </div>
             <div className="flex flex-col">
               <h1 className="text-xl font-black text-rose-500 tracking-tight leading-tight" style={{ fontFamily: 'var(--font-heading, system-ui)' }}>
@@ -478,10 +493,15 @@ function App() {
               </div>
 
               <div className="flex flex-col items-center mb-6">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center shadow-inner border-4 border-white mb-4">
-                  <UserCircle2 className="w-14 h-14 text-rose-500" />
+                <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center shadow-inner border-4 border-white mb-4 relative ${DECORATIONS.find(d => d.id === equippedFrame)?.styleClass || ''}`}>
+                  <UserCircle2 className="w-14 h-14 text-rose-500 relative z-10" />
                 </div>
-                <h2 className="text-2xl font-black text-stone-700">{username}</h2>
+                <h2 className="text-2xl font-black text-stone-700 mb-1">{username}</h2>
+                {equippedTitle && (
+                  <div className={`px-3 py-1 rounded-full text-xs font-black border-2 mb-2 inline-block ${DECORATIONS.find(d => d.id === equippedTitle)?.styleClass || ''}`}>
+                    {DECORATIONS.find(d => d.id === equippedTitle)?.name.replace('Danh hiệu: ', '')}
+                  </div>
+                )}
                 <span className="text-stone-400 font-medium">{user.email}</span>
               </div>
 
@@ -501,7 +521,50 @@ function App() {
                   </span>
                 </div>
               </div>
+
+              {/* Tủ Trưng Bày */}
+              <div 
+                className="mb-6 rounded-3xl p-4 overflow-hidden relative border-4 border-stone-100 shadow-inner"
+                style={equippedBackground ? { 
+                  backgroundImage: `url(${DECORATIONS.find(d => d.id === equippedBackground)?.imageUrl})`, 
+                  backgroundSize: 'cover', 
+                  backgroundPosition: 'center' 
+                } : { backgroundColor: '#f5f5f4' }}
+              >
+                <div className="flex justify-between items-center mb-4 bg-white/90 backdrop-blur-sm rounded-2xl px-3 py-2 shadow-sm inline-flex">
+                  <h4 className="font-black text-stone-700">Tủ Trưng Bày</h4>
+                </div>
+                
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x hide-scrollbar">
+                  {inventory.filter(a => a.is_showcased).length === 0 ? (
+                    <div className="w-full py-8 text-center bg-white/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-stone-300">
+                      <p className="text-stone-500 font-bold">Chưa trưng bày thẻ nào</p>
+                    </div>
+                  ) : (
+                    inventory.filter(a => a.is_showcased).map(animon => (
+                      <div key={animon.id} className="snap-center shrink-0" style={{ transform: 'scale(0.8)', transformOrigin: 'top left', marginBottom: '-60px', marginRight: '-40px' }}>
+                         <Card animon={animon as any} disableHover />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
               
+              <button
+                onClick={() => setShowAchievements(true)}
+                className="w-full mb-4 py-3 bg-gradient-to-r from-amber-300 to-orange-400 text-white font-black rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 relative"
+              >
+                <Trophy className="w-5 h-5" /> Cúp Thành Tựu
+                {unclaimedAchievementsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-5 w-5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative flex items-center justify-center rounded-full h-5 w-5 bg-rose-500 border-2 border-white text-[10px] font-bold">
+                      {unclaimedAchievementsCount}
+                    </span>
+                  </span>
+                )}
+              </button>
+
               <MatchHistory />
 
               <div className="mt-8">

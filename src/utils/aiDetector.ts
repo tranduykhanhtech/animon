@@ -42,6 +42,14 @@ const animalKeywords = [
   'jaguar', 'snow leopard', 'animal', 'pet', 'wildlife', 'creature', 'beast'
 ];
 
+// Từ khóa phát hiện gian lận (chụp màn hình, đồ chơi, tranh ảnh)
+const fakeKeywords = [
+  'monitor', 'screen', 'television', 'laptop', 'computer', 'display', 'desktop',
+  'teddy', 'plush', 'stuffed', 'doll', 'action figure', 'jigsaw', 'puzzle',
+  'comic', 'book', 'paper', 'drawing', 'painting', 'sketch', 'art', 'sculpture', 'statue',
+  'photograph', 'frame', 'picture', 'poster'
+];
+
 export const isAnimal = async (imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): Promise<{ isAnimal: boolean, topGuess: string }> => {
   if (!model) {
     model = await loadAIModel();
@@ -58,18 +66,35 @@ export const isAnimal = async (imageElement: HTMLImageElement | HTMLVideoElement
 
     const topGuess = predictions[0].className;
 
-    // Kiểm tra top 3 dự đoán xem có chứa từ khóa động vật không
+    let isFake = false;
+    let foundAnimal = false;
+
     for (const p of predictions) {
       const classes = p.className.toLowerCase().split(', ');
-      for (const cls of classes) {
-        // Kiểm tra xem lớp dự đoán có chứa bất kỳ từ khóa nào trong danh sách không bằng cách so khớp từ nguyên vẹn
-        if (animalKeywords.some(keyword => {
-          const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-          return regex.test(cls);
-        })) {
-          return { isAnimal: true, topGuess };
-        }
+      
+      // Kiểm tra xem có dấu hiệu gian lận không
+      if (fakeKeywords.some(keyword => {
+        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+        return classes.some(cls => regex.test(cls));
+      })) {
+        isFake = true;
       }
+
+      // Kiểm tra xem có phải động vật không
+      if (animalKeywords.some(keyword => {
+        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+        return classes.some(cls => regex.test(cls));
+      })) {
+        foundAnimal = true;
+      }
+    }
+
+    if (isFake) {
+      return { isAnimal: false, topGuess: 'ảnh giả (màn hình/đồ chơi/tranh vẽ)' };
+    }
+
+    if (foundAnimal) {
+      return { isAnimal: true, topGuess };
     }
 
     return { isAnimal: false, topGuess };

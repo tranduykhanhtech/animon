@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Card } from './Card';
-import { Coins, Store, RefreshCw, PlusCircle, X, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
+import { Coins, Store, RefreshCw, PlusCircle, X, TrendingUp, TrendingDown, Minus, Sparkles, Gem, ShoppingBag, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DECORATIONS } from '../constants/decorations';
 
 export const Marketplace: React.FC = () => {
-  const { marketplace, fetchMarketplace, buyAnimon, listAnimonForSale, user, coins, inventory } = useGameStore();
+  const { marketplace, fetchMarketplace, buyAnimon, listAnimonForSale, user, coins, inventory, unlockedItems, buyDecoration, equipDecoration, equippedFrame, equippedBackground, equippedTitle, equippedMarker } = useGameStore();
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'market' | 'shop'>('market');
   
   // Sell Modal States
   const [showSellModal, setShowSellModal] = useState(false);
@@ -97,27 +99,45 @@ export const Marketplace: React.FC = () => {
 
   return (
     <div className="pb-32">
-      <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-xl font-bold text-stone-600 flex items-center gap-2">
-          <Store className="w-6 h-6 text-rose-400" /> Chợ Giao Dịch
-        </h2>
-        
-        <div className="flex gap-2">
-          <button 
-            onClick={() => { setShowSellModal(true); setSelectedAnimonId(null); setSellPrice(''); }}
-            className="flex items-center gap-1 text-sm font-bold bg-amber-100 text-amber-600 px-3 py-1.5 rounded-full hover:bg-amber-200 transition-colors"
-          >
-            <PlusCircle className="w-4 h-4" /> Đăng Bán
-          </button>
-          <button 
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-1 text-sm font-bold text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-50 ml-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
+      {/* Tabs */}
+      <div className="flex bg-white rounded-2xl p-2 shadow-sm mb-6 max-w-sm mx-auto border-2 border-stone-100">
+        <button
+          onClick={() => setActiveTab('market')}
+          className={`flex-1 py-2 font-bold rounded-xl flex justify-center items-center gap-2 transition-all ${activeTab === 'market' ? 'bg-rose-100 text-rose-600 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+        >
+          <Store className="w-5 h-5" /> Chợ Thẻ
+        </button>
+        <button
+          onClick={() => setActiveTab('shop')}
+          className={`flex-1 py-2 font-bold rounded-xl flex justify-center items-center gap-2 transition-all ${activeTab === 'shop' ? 'bg-amber-100 text-amber-600 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+        >
+          <ShoppingBag className="w-5 h-5" /> Cửa Hàng
+        </button>
       </div>
+
+      {activeTab === 'market' && (
+        <>
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h2 className="text-xl font-bold text-stone-600 flex items-center gap-2">
+              <Store className="w-6 h-6 text-rose-400" /> Chợ Giao Dịch
+            </h2>
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => { setShowSellModal(true); setSelectedAnimonId(null); setSellPrice(''); }}
+                className="flex items-center gap-1 text-sm font-bold bg-amber-100 text-amber-600 px-3 py-1.5 rounded-full hover:bg-amber-200 transition-colors"
+              >
+                <PlusCircle className="w-4 h-4" /> Đăng Bán
+              </button>
+              <button 
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center gap-1 text-sm font-bold text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-50 ml-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
 
       {marketplace.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -287,6 +307,104 @@ export const Marketplace: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      </>
+      )}
+
+      {activeTab === 'shop' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between mb-8 px-2">
+            <h2 className="text-xl font-bold text-stone-600 flex items-center gap-2">
+              <ShoppingBag className="w-6 h-6 text-amber-500" /> Cửa Hàng Trang Trí
+            </h2>
+            <div className="bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-bold flex items-center gap-2 border-2 border-amber-200">
+              <Coins className="w-5 h-5" />
+              <span>{coins}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {DECORATIONS.map(item => {
+              const isOwned = unlockedItems.includes(item.id);
+              let isEquipped = false;
+              if (item.type === 'frame') isEquipped = equippedFrame === item.id;
+              else if (item.type === 'background') isEquipped = equippedBackground === item.id;
+              else if (item.type === 'title') isEquipped = equippedTitle === item.id;
+              else if (item.type === 'marker') isEquipped = equippedMarker === item.id;
+
+              return (
+                <div key={item.id} className={`bg-white rounded-3xl p-6 border-4 shadow-sm flex flex-col transition-colors ${isEquipped ? 'border-amber-400' : 'border-stone-100 hover:border-amber-100'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-black text-xl text-stone-800">{item.name}</h3>
+                      <span className="text-xs font-bold px-2 py-1 bg-stone-100 text-stone-500 rounded-lg uppercase tracking-wider">
+                        {item.type === 'frame' ? 'Khung Avatar' : 
+                         item.type === 'background' ? 'Nền Showcase' : 
+                         item.type === 'title' ? 'Danh Hiệu' : 'Biểu Tượng Map'}
+                      </span>
+                    </div>
+                    {item.type === 'frame' ? (
+                      <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center shrink-0 ml-4 relative">
+                        <div className={`absolute inset-0 rounded-full ${item.styleClass}`}></div>
+                        <Gem className="w-6 h-6 text-stone-400 relative z-10" />
+                      </div>
+                    ) : item.type === 'background' ? (
+                      <div 
+                        className="w-16 h-16 rounded-xl bg-stone-100 shrink-0 ml-4 border-2 border-stone-200"
+                        style={{ backgroundImage: `url(${item.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                      />
+                    ) : item.type === 'title' ? (
+                      <div className={`w-16 h-16 rounded-xl shrink-0 ml-4 border-2 flex items-center justify-center text-[10px] font-black text-center p-1 leading-tight ${item.styleClass}`}>
+                        {item.name.replace('Danh hiệu: ', '')}
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-stone-100 shrink-0 ml-4 flex items-center justify-center border-2 border-stone-200">
+                        <div className={`w-8 h-8 rounded-full ${item.styleClass}`}></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="text-stone-500 text-sm font-medium flex-1 mb-6">
+                    {item.description}
+                  </p>
+
+                  {isEquipped ? (
+                    <button 
+                      disabled
+                      className="w-full py-3 bg-amber-50 text-amber-500 font-bold rounded-2xl border-2 border-amber-200 flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-5 h-5" /> Đang dùng
+                    </button>
+                  ) : isOwned ? (
+                    <button 
+                      onClick={async () => {
+                        const res = await equipDecoration(item.id, item.type);
+                        if (res.success) alert(res.message);
+                        else alert("Lỗi: " + res.message);
+                      }}
+                      className="w-full py-3 bg-stone-800 text-white font-bold rounded-2xl border-2 border-stone-800 hover:bg-stone-700 hover:-translate-y-1 transition-all"
+                    >
+                      Trang bị
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        if (confirm(`Mua ${item.name} với giá ${item.price} Coins?`)) {
+                          const res = await buyDecoration(item.id, item.price);
+                          if (res.success) alert(res.message);
+                          else alert("Lỗi: " + res.message);
+                        }
+                      }}
+                      className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black text-lg rounded-2xl shadow-[0_4px_0_rgba(217,119,6,0.2)] hover:-translate-y-1 hover:shadow-[0_6px_0_rgba(217,119,6,0.2)] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 border-2 border-white"
+                    >
+                      Mua <Coins className="w-5 h-5 fill-white" /> {item.price}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
