@@ -42,20 +42,6 @@ const createCustomIcon = (imageUrl: string) => {
   });
 };
 
-// Create a glowing dot for user location
-const userLocationIcon = L.divIcon({
-  className: 'bg-transparent border-0',
-  html: `
-    <div class="relative flex h-5 w-5">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" style="animation-duration: 2s;"></span>
-      <span class="relative inline-flex rounded-full h-5 w-5 bg-blue-500 border-[3px] border-white shadow-[0_0_12px_rgba(59,130,246,0.8)]"></span>
-    </div>
-  `,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-  popupAnchor: [0, -10],
-});
-
 function ChangeView({ center }: { center: [number, number] }) {
   const map = useMap();
   map.setView(center, map.getZoom());

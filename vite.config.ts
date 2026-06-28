@@ -6,7 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
       includeAssets: ['favicon.ico', 'animon-logo.svg'],
       manifest: {
         name: 'Animon',
@@ -34,11 +40,9 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
-      },
       devOptions: {
-        enabled: true
+        enabled: true,
+        type: 'module'
       }
     })
   ],

@@ -16,8 +16,9 @@ import { useGameStore } from './store/useGameStore';
 import { useBattleStore } from './store/useBattleStore';
 import { generateCardStats } from './utils/cardLogic';
 import { supabase } from './lib/supabase';
-import { Coins, Sparkles, PawPrint, LogOut, Loader2, Tag, Store, UserCircle2, X, Swords, Trophy } from 'lucide-react';
+import { Coins, Sparkles, Trophy, LogOut, UserCircle2, X, PawPrint, Swords, Bell, Loader2, Tag, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { subscribeToPushNotifications } from './utils/push';
 
 function App() {
   const { session, user, username, inventory, coins, isLoading, setSession, signOut, addAnimon, listAnimonForSale, fetchFriends, unlockedAchievements, claimedAchievements, equippedFrame, equippedBackground, equippedTitle } = useGameStore();
@@ -563,6 +564,17 @@ function App() {
                     </span>
                   </span>
                 )}
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  const res = await subscribeToPushNotifications(user.id);
+                  alert(res.message);
+                }}
+                className="w-full mb-4 py-3 bg-stone-100 text-indigo-600 font-bold rounded-xl shadow-sm hover:bg-stone-200 transition-all flex items-center justify-center gap-2 border-2 border-indigo-100"
+              >
+                <Bell className="w-5 h-5" /> Bật Thông Báo Nền
               </button>
 
               <MatchHistory />

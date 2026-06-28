@@ -75,7 +75,7 @@ export const isAnimal = async (imageElement: HTMLImageElement | HTMLVideoElement
       // Kiểm tra xem có dấu hiệu gian lận không
       if (fakeKeywords.some(keyword => {
         const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-        return classes.some(cls => regex.test(cls));
+        return classes.some((cls: string) => regex.test(cls));
       })) {
         isFake = true;
       }
@@ -83,7 +83,7 @@ export const isAnimal = async (imageElement: HTMLImageElement | HTMLVideoElement
       // Kiểm tra xem có phải động vật không
       if (animalKeywords.some(keyword => {
         const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-        return classes.some(cls => regex.test(cls));
+        return classes.some((cls: string) => regex.test(cls));
       })) {
         foundAnimal = true;
       }

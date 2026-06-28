@@ -100,7 +100,7 @@ interface GameState {
   
   fetchDecorations: () => Promise<void>;
   buyDecoration: (itemId: string, price: number) => Promise<{ success: boolean; message: string }>;
-  equipDecoration: (itemId: string, type: 'frame' | 'background') => Promise<{ success: boolean; message: string }>;
+  equipDecoration: (itemId: string, type: string) => Promise<{ success: boolean; message: string }>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
