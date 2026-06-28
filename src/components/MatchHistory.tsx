@@ -27,7 +27,7 @@ export const MatchHistory: React.FC = () => {
         <div className="flex flex-col gap-3">
           {matchHistory.map((match, idx) => {
             const isWinner = match.winner_id === user.id;
-            const opponentName = isWinner ? match.loser.username : match.winner.username;
+            const opponentName = isWinner ? (match.loser?.username || 'Ẩn danh') : (match.winner?.username || 'Ẩn danh');
             const pointsStr = isWinner ? `+${match.points_change}` : `-15`; // Backend deducts 15 for loss
 
             return (

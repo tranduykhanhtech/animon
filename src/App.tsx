@@ -19,9 +19,12 @@ import { supabase } from './lib/supabase';
 import { Coins, Sparkles, Trophy, LogOut, UserCircle2, X, PawPrint, Swords, Bell, Loader2, Tag, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { subscribeToPushNotifications } from './utils/push';
+import { getRankInfo, getNextRank } from './utils/rank';
+import { useTimeOfDay } from './hooks/useTimeOfDay';
 
 function App() {
-  const { session, user, username, inventory, coins, isLoading, setSession, signOut, addAnimon, listAnimonForSale, fetchFriends, unlockedAchievements, claimedAchievements, equippedFrame, equippedBackground, equippedTitle } = useGameStore();
+  const { session, user, username, inventory, coins, isLoading, setSession, signOut, addAnimon, listAnimonForSale, fetchFriends, unlockedAchievements, claimedAchievements, equippedFrame, equippedBackground, equippedTitle, rank_points } = useGameStore();
+  const timeOfDay = useTimeOfDay();
   const unclaimedAchievementsCount = unlockedAchievements.length - claimedAchievements.length;
   const [newlyCaught, setNewlyCaught] = useState<{ file: File, imageUrl: string, name: string, stats: any, lat?: number, lng?: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -33,6 +36,7 @@ function App() {
   const [showIosPrompt, setShowIosPrompt] = useState(false);
   const [viewingAnimon, setViewingAnimon] = useState<any>(null);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
 
   // Battle Invite State
   const [incomingInvite, setIncomingInvite] = useState<{ inviterId: string, inviterUsername: string, roomId: string } | null>(null);
@@ -60,6 +64,15 @@ function App() {
       window.removeEventListener('beforeinstallprompt', installHandler);
     }
   }, [setSession]);
+
+  useEffect(() => {
+    if (user && 'Notification' in window) {
+      if (Notification.permission === 'default' && !localStorage.getItem('pushPromptDismissed')) {
+        const timer = setTimeout(() => setShowPushPrompt(true), 2000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     // Detect iOS for install prompt
@@ -173,7 +186,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] text-stone-700 font-sans selection:bg-rose-200">
+    <div className={`min-h-screen font-sans selection:bg-rose-200 transition-colors duration-1000 ${
+      timeOfDay === 'dawn' ? 'bg-gradient-to-b from-sky-100 to-[#FFF8F0] text-stone-700' :
+      timeOfDay === 'day' ? 'bg-gradient-to-b from-[#e8f4f8] to-[#FFF8F0] text-stone-700' :
+      timeOfDay === 'dusk' ? 'bg-gradient-to-b from-orange-100 to-[#FFF8F0] text-stone-700' :
+      'bg-gradient-to-b from-indigo-950 to-slate-900 text-stone-200'
+    }`}>
       
       {/* Install PWA Prompt (Android) */}
       <AnimatePresence>
@@ -484,9 +502,10 @@ function App() {
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl border-4 border-rose-100"
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl relative my-auto max-h-[85vh] overflow-y-auto hide-scrollbar"
             >
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-center mb-6 sticky top-0 bg-white/90 backdrop-blur-sm z-10 py-2 -mt-2 -mx-2 px-2">
                 <h3 className="font-black text-2xl text-rose-500">Hồ sơ Trainer</h3>
                 <button onClick={() => setShowProfile(false)} className="p-2 bg-stone-100 text-stone-400 rounded-full hover:bg-stone-200">
                   <X className="w-5 h-5" />
@@ -494,10 +513,17 @@ function App() {
               </div>
 
               <div className="flex flex-col items-center mb-6">
-                <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center shadow-inner border-4 border-white mb-4 relative ${DECORATIONS.find(d => d.id === equippedFrame)?.styleClass || ''}`}>
-                  <UserCircle2 className="w-14 h-14 text-rose-500 relative z-10" />
+                {/* RANK BORDER APPLIED HERE IF EQUIPPED FRAME IS DEFAULT, OR WE CAN ADD A RANK BADGE */}
+                <div className="relative mb-4">
+                  <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center shadow-inner border-4 border-white ${DECORATIONS.find(d => d.id === equippedFrame)?.styleClass || ''}`}>
+                    <UserCircle2 className="w-14 h-14 text-rose-500 relative z-10" />
+                  </div>
+                  <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-white text-xs font-black border-2 border-white bg-gradient-to-r flex items-center gap-1 whitespace-nowrap shadow-md ${getRankInfo(rank_points).badgeClass}`}>
+                    <span className="text-sm leading-none">{getRankInfo(rank_points).icon}</span>
+                    <span>{getRankInfo(rank_points).name}</span>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-black text-stone-700 mb-1">{username}</h2>
+                <h2 className="text-2xl font-black text-stone-700 mb-1 mt-2">{username}</h2>
                 {equippedTitle && (
                   <div className={`px-3 py-1 rounded-full text-xs font-black border-2 mb-2 inline-block ${DECORATIONS.find(d => d.id === equippedTitle)?.styleClass || ''}`}>
                     {DECORATIONS.find(d => d.id === equippedTitle)?.name.replace('Danh hiệu: ', '')}
@@ -505,6 +531,32 @@ function App() {
                 )}
                 <span className="text-stone-400 font-medium">{user.email}</span>
               </div>
+
+              {/* Rank Progress */}
+              {(() => {
+                const currentRank = getRankInfo(rank_points);
+                const nextRank = getNextRank(rank_points);
+                const progress = nextRank 
+                  ? ((rank_points - currentRank.minRP) / (nextRank.minRP - currentRank.minRP)) * 100 
+                  : 100;
+                
+                return (
+                  <div className="bg-stone-50 rounded-2xl p-4 border-2 border-stone-100 mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-stone-500 font-bold text-sm">Điểm Xếp Hạng (RP)</span>
+                      <span className={`font-black ${currentRank.colorClass}`}>{rank_points} RP</span>
+                    </div>
+                    <div className="h-3 w-full bg-stone-200 rounded-full overflow-hidden">
+                      <div className={`h-full bg-gradient-to-r ${currentRank.badgeClass} transition-all duration-1000`} style={{ width: `${Math.max(5, progress)}%` }}></div>
+                    </div>
+                    {nextRank && (
+                      <p className="text-xs text-stone-400 font-medium mt-2 text-right">
+                        Còn {nextRank.minRP - rank_points} RP để lên {nextRank.name}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="bg-stone-50 rounded-2xl p-4 border-2 border-stone-100 mb-6 space-y-3">
                 <div className="flex justify-between items-center">
@@ -564,17 +616,6 @@ function App() {
                     </span>
                   </span>
                 )}
-              </button>
-
-              <button
-                onClick={async () => {
-                  if (!user) return;
-                  const res = await subscribeToPushNotifications(user.id);
-                  alert(res.message);
-                }}
-                className="w-full mb-4 py-3 bg-stone-100 text-indigo-600 font-bold rounded-xl shadow-sm hover:bg-stone-200 transition-all flex items-center justify-center gap-2 border-2 border-indigo-100"
-              >
-                <Bell className="w-5 h-5" /> Bật Thông Báo Nền
               </button>
 
               <MatchHistory />
@@ -674,6 +715,58 @@ function App() {
                   className="flex-[2] py-4 bg-gradient-to-r from-rose-500 to-orange-500 text-white font-black text-lg rounded-2xl shadow-[0_6px_0_rgba(244,63,94,0.2)] hover:opacity-90 active:translate-y-1 active:shadow-none transition-all"
                 >
                   CHẤP NHẬN CHIẾN!
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Push Notification Prompt Modal */}
+      <AnimatePresence>
+        {showPushPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl text-center relative border-4 border-indigo-100"
+            >
+              <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-sm">
+                <Bell className="w-8 h-8 text-indigo-500 animate-[ring_2s_ease-in-out_infinite]" />
+              </div>
+              <h3 className="text-xl font-black text-indigo-600 mb-2">Bật thông báo nhé?</h3>
+              <p className="text-stone-500 font-medium mb-6 text-sm">
+                Đừng bỏ lỡ bất kỳ lời mời thách đấu hay lượt mua thẻ nào từ bạn bè!
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('pushPromptDismissed', 'true');
+                    setShowPushPrompt(false);
+                  }}
+                  className="flex-1 py-3 bg-stone-100 text-stone-500 font-bold rounded-2xl hover:bg-stone-200 transition-colors"
+                >
+                  Để sau
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!user) return;
+                    const res = await subscribeToPushNotifications(user.id);
+                    if (res.success) {
+                      setShowPushPrompt(false);
+                      localStorage.setItem('pushPromptDismissed', 'true');
+                    } else {
+                      alert(res.message);
+                    }
+                  }}
+                  className="flex-[1.5] py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95 transition-all"
+                >
+                  BẬT NGAY!
                 </button>
               </div>
             </motion.div>

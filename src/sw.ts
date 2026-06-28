@@ -1,11 +1,9 @@
-// @ts-nocheck
-declare let self: any;
+/// <reference lib="webworker" />
+declare let self: ServiceWorkerGlobalScope;
 
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js');
+import { precacheAndRoute } from 'workbox-precaching';
 
-if (workbox) {
-  workbox.precaching.precacheAndRoute(self.__WB_MANIFEST);
-}
+precacheAndRoute(self.__WB_MANIFEST);
 
 // Listen for push notifications
 self.addEventListener('push', (event) => {

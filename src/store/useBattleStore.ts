@@ -18,7 +18,8 @@ interface BattleState {
   me: BattlePlayer | null;
   isMyTurn: boolean;
   battleLog: string[];
-  channel: RealtimeChannel | null;
+  channel: RealtimeChannel | null; // Battle channel
+  matchChannel: RealtimeChannel | null; // Matchmaking channel
   
   startSearch: (myAnimon: Animon, username: string, myRankPoints: number) => Promise<void>;
   cancelSearch: () => void;
@@ -34,6 +35,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   isMyTurn: false,
   battleLog: [],
   channel: null,
+  matchChannel: null,
 
   startSearch: async (myAnimon, username, myRankPoints) => {
     set({ isSearching: true, battleLog: ['Đang dò tìm đối thủ cùng bậc Hạng...'] });
@@ -53,38 +55,37 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         
         if (opponent && get().isSearching) {
           // Found someone! We join their room
-          const roomId = opponent.roomId;
+          const targetRoomId = opponent.roomId;
           get().cancelSearch(); // Stop matchmaking
           
           // Join Battle Channel
-          joinBattleRoom(roomId, myAnimon, username, opponent, false);
+          joinBattleRoom(targetRoomId, myAnimon, username, opponent, false);
         }
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          // If I'm the first, create a room ID and broadcast my presence with my rank
           const roomId = `battle_${Date.now()}_${username}`;
           await matchChannel.track({ username, myAnimon, roomId, rankPoints: myRankPoints });
           
           // I will be host
           setTimeout(() => {
             if (get().isSearching && !get().roomId) {
-              get().cancelSearch();
+              // WE DO NOT CANCEL SEARCH! We stay in matchChannel so the second person can find us.
               joinBattleRoom(roomId, myAnimon, username, null, true);
             }
-          }, 2000); // Wait 2s to see if someone is already there, if not, become host
+          }, 3000);
         }
       });
       
-    set({ channel: matchChannel });
+    set({ matchChannel });
   },
 
   cancelSearch: () => {
-    const channel = get().channel;
-    if (channel) {
-      channel.unsubscribe();
+    const matchChannel = get().matchChannel;
+    if (matchChannel) {
+      matchChannel.unsubscribe();
     }
-    set({ isSearching: false, channel: null });
+    set({ isSearching: false, matchChannel: null });
   },
 
 
@@ -92,8 +93,11 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   leaveBattle: () => {
     const channel = get().channel;
     if (channel) channel.unsubscribe();
+    const matchChannel = get().matchChannel;
+    if (matchChannel) matchChannel.unsubscribe();
+    
     if ((window as any).battleInterval) clearInterval((window as any).battleInterval);
-    set({ roomId: null, opponent: null, me: null, isMyTurn: false, battleLog: [], channel: null, isSearching: false });
+    set({ roomId: null, opponent: null, me: null, isMyTurn: false, battleLog: [], channel: null, matchChannel: null, isSearching: false });
   },
 
   joinPrivateBattle: (roomId, myAnimon, username, isHost) => {
@@ -298,11 +302,21 @@ function joinBattleRoom(roomId: string, myAnimon: Animon, username: string, init
         const oppMaxHp = opp.animon.stats.energy * 10;
         useBattleStore.setState({
           opponent: { id: opp.id, username: opp.username, animon: opp.animon, hp: oppMaxHp, maxHp: oppMaxHp },
-          battleLog: [`Đối thủ ${opp.username} đã xuất hiện! Trận đấu bắt đầu sau 2s...`, ...useBattleStore.getState().battleLog]
+          battleLog: [`Đối thủ ${opp.username} đã tham gia! Trận đấu bắt đầu...`, ...useBattleStore.getState().battleLog],
+          isSearching: false // Ensure UI updates
         });
+        
+        // Clean up match channel since we found an opponent
+        const store = useBattleStore.getState();
+        if (store.matchChannel) {
+          store.matchChannel.unsubscribe();
+          useBattleStore.setState({ matchChannel: null });
+        }
 
         if (isHost) {
-          setTimeout(startAutoBattleLoop, 2000);
+          setTimeout(() => {
+            startAutoBattleLoop();
+          }, 2000);
         }
       }
     })

@@ -8,6 +8,7 @@ export interface DecorationItem {
   type: DecorationType;
   styleClass?: string; // CSS class for frame, bg, title color, marker style
   imageUrl?: string; // Image URL for background or custom marker icon
+  requiredRankRP?: number; // Minimum RP required to buy
 }
 
 export const DECORATIONS: DecorationItem[] = [
@@ -18,7 +19,8 @@ export const DECORATIONS: DecorationItem[] = [
     description: 'Viền vàng lấp lánh sang trọng dành cho các đại gia.',
     price: 3000,
     type: 'frame',
-    styleClass: 'ring-4 ring-amber-400 ring-offset-2 shadow-[0_0_15px_rgba(251,191,36,0.8)]'
+    styleClass: 'ring-4 ring-amber-400 ring-offset-2 shadow-[0_0_15px_rgba(251,191,36,0.8)]',
+    requiredRankRP: 300 // Vàng
   },
   {
     id: 'frame_neon',
@@ -34,7 +36,8 @@ export const DECORATIONS: DecorationItem[] = [
     description: 'Viền rực lửa, thể hiện đẳng cấp chiến binh.',
     price: 8000,
     type: 'frame',
-    styleClass: 'ring-4 ring-rose-500 ring-offset-2 shadow-[0_0_25px_rgba(244,63,94,0.9)] animate-pulse'
+    styleClass: 'ring-4 ring-rose-500 ring-offset-2 shadow-[0_0_25px_rgba(244,63,94,0.9)] animate-pulse',
+    requiredRankRP: 600 // Bạch Kim
   },
   {
     id: 'frame_rainbow',
@@ -50,7 +53,8 @@ export const DECORATIONS: DecorationItem[] = [
     description: 'Tỏa ánh sáng từ các vì sao, lơ lửng giữa không gian.',
     price: 25000,
     type: 'frame',
-    styleClass: 'ring-4 ring-purple-500 ring-offset-4 ring-offset-stone-900 animate-glow border-2 border-fuchsia-400'
+    styleClass: 'ring-4 ring-purple-500 ring-offset-4 ring-offset-stone-900 animate-glow border-2 border-fuchsia-400',
+    requiredRankRP: 1000 // Kim Cương
   },
   {
     id: 'frame_radar',
@@ -158,7 +162,8 @@ export const DECORATIONS: DecorationItem[] = [
     description: 'Sự công nhận cho những người đam mê tìm kiếm Animon.',
     price: 5000,
     type: 'title',
-    styleClass: 'text-rose-600 bg-rose-100 border-rose-300 shadow-[0_0_10px_rgba(225,29,72,0.3)]'
+    styleClass: 'text-rose-600 bg-rose-100 border-rose-300 shadow-[0_0_10px_rgba(225,29,72,0.3)]',
+    requiredRankRP: 100 // Bạc
   },
   {
     id: 'title_master',
@@ -166,7 +171,8 @@ export const DECORATIONS: DecorationItem[] = [
     description: 'Danh hiệu cao quý, tỏa hào quang vàng lấp lánh.',
     price: 20000,
     type: 'title',
-    styleClass: 'text-amber-600 bg-amber-100 border-amber-400 font-extrabold animate-pulse'
+    styleClass: 'text-amber-600 bg-amber-100 border-amber-400 font-extrabold animate-pulse',
+    requiredRankRP: 300 // Vàng
   },
   {
     id: 'title_legend',
@@ -174,7 +180,8 @@ export const DECORATIONS: DecorationItem[] = [
     description: 'Chỉ những Trainer vĩ đại nhất mới sở hữu.',
     price: 50000,
     type: 'title',
-    styleClass: 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 animate-rainbow font-black tracking-widest'
+    styleClass: 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 animate-rainbow font-black tracking-widest',
+    requiredRankRP: 1000 // Kim Cương
   },
 
   // MAP MARKERS

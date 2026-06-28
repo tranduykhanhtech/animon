@@ -252,19 +252,19 @@ export const BattleArena: React.FC = () => {
 
                     return (
                       <div key={friend.id} className="bg-stone-50 p-4 rounded-2xl border-2 border-stone-200 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                          <div className="w-12 h-12 shrink-0 rounded-full bg-indigo-100 flex items-center justify-center">
                             <UserCircle2 className="w-7 h-7 text-indigo-400" />
                           </div>
-                          <div>
-                            <div className="font-bold text-stone-700">{otherPerson.username}</div>
-                            <div className="text-xs font-medium text-stone-400">{otherPerson.email}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-stone-700 truncate">{otherPerson.username}</div>
+                            <div className="text-xs font-medium text-stone-400 truncate">{otherPerson.email}</div>
                           </div>
                         </div>
                         <button
                           onClick={() => handleInviteFriend(otherPerson.id, otherPerson.username)}
                           disabled={isInviting}
-                          className="px-4 py-2 bg-gradient-to-r from-rose-400 to-orange-400 text-white font-bold rounded-xl shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
+                          className="shrink-0 px-4 py-2 bg-gradient-to-r from-rose-400 to-orange-400 text-white font-bold rounded-xl shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
                         >
                           THÁCH ĐẤU
                         </button>

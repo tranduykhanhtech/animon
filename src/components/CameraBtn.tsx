@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, X, Aperture, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +17,21 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [targetSize, setTargetSize] = useState(150);
+  const sizeRef = useRef(150);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      // Sine wave between 50 and 150
+      const phase = (Date.now() - startTime) / 800; // Speed of pulsing
+      const size = 60 + Math.abs(Math.sin(phase * Math.PI)) * 90;
+      sizeRef.current = size;
+      setTargetSize(size);
+    }, 16);
+    return () => clearInterval(interval);
+  }, [isOpen]);
 
   const { inventory } = useGameStore();
 
@@ -67,6 +82,13 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
   }, [stream]);
 
   const capturePhoto = async () => {
+    // Check Mini-game accuracy
+    const currentSize = sizeRef.current;
+    if (currentSize > 80) {
+      setError('Mồi nhử trượt rồi! Bạn phải thả mồi lúc tâm ngắm thu nhỏ nhất (màu xanh lá).');
+      return;
+    }
+
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -200,25 +222,32 @@ export const CameraBtn: React.FC<CameraBtnProps> = ({ onCapture }) => {
                   />
                   
                   {/* Cute Targeting Overlay */}
-                  <div className="absolute inset-x-8 inset-y-16 border-4 border-dashed border-white/70 rounded-3xl pointer-events-none" />
+                  <div className="absolute inset-x-8 inset-y-16 border-4 border-dashed border-white/40 rounded-3xl pointer-events-none" />
                   
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30 pointer-events-none">
-                    <Aperture className="w-24 h-24 text-white animate-spin-slow" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
+                    <div 
+                      className={`rounded-full border-[6px] transition-colors ${targetSize <= 80 ? 'border-emerald-400 bg-emerald-400/20' : 'border-rose-400/80 bg-rose-400/10'}`}
+                      style={{ width: `${targetSize}px`, height: `${targetSize}px` }}
+                    />
+                    <div className="absolute w-2 h-2 bg-white rounded-full" />
                   </div>
                 </div>
 
                 <canvas ref={canvasRef} className="hidden" />
 
                 {/* Capture Button */}
-                <div className="absolute bottom-10 flex items-center justify-center w-full z-20">
+                <div className="absolute bottom-10 flex flex-col items-center justify-center w-full z-20">
+                  <p className="text-white font-black drop-shadow-md mb-2 bg-stone-900/40 px-4 py-1 rounded-full text-sm">
+                    Canh vòng tròn thu nhỏ rồi ném mồi!
+                  </p>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={capturePhoto}
                     disabled={isAnalyzing}
-                    className={`w-20 h-20 bg-white/40 border-4 border-white rounded-full flex items-center justify-center backdrop-blur-md shadow-lg ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`px-8 py-4 bg-emerald-500 text-white font-black text-xl rounded-full flex items-center gap-2 shadow-[0_6px_0_rgb(16,185,129)] border-4 border-white ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-1 hover:shadow-[0_8px_0_rgb(16,185,129)] active:translate-y-0 active:shadow-none transition-all'}`}
                   >
-                    <div className={`w-14 h-14 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] border-2 border-white ${isAnalyzing ? 'bg-stone-400' : 'bg-gradient-to-tr from-rose-400 to-orange-400'}`} />
+                    🥩 Ném Mồi
                   </motion.button>
                 </div>
                 

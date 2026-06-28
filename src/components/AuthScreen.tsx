@@ -28,24 +28,17 @@ export const AuthScreen: React.FC = () => {
           password 
         });
         
-        if (signUpError) throw signUpError;
-        
-        if (data.user) {
-          // Add user profile
-          const { error: profileError } = await supabase
-            .from('users')
-            .insert({
-              id: data.user.id,
-              username: username,
-              email: email,
-              coins: 100 // Starting bonus
-            });
-            
-          if (profileError) throw profileError;
-        }
       }
     } catch (err: any) {
-      setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại!');
+      let errorMessage = err.message || 'Có lỗi xảy ra, vui lòng thử lại!';
+      
+      if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
+        errorMessage = 'Email này đã được đăng ký! Vui lòng dùng email khác hoặc đăng nhập.';
+      } else if (errorMessage.includes('Invalid login credentials')) {
+        errorMessage = 'Email hoặc mật khẩu không đúng!';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

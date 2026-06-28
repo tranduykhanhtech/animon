@@ -74,4 +74,28 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'early_bird', title: 'Chim sớm bắt sâu', description: 'Bắt 1 Animon trong khoảng 4h - 7h sáng.', rewardCoins: 200, icon: '🌅' },
   { id: 'sun_baker', title: 'Phơi nắng', description: 'Bắt 1 Animon giữa trưa (11h - 13h).', rewardCoins: 200, icon: '☀️' },
   { id: 'sunset_lover', title: 'Kẻ si tình', description: 'Bắt 1 Animon lúc hoàng hôn (17h - 19h).', rewardCoins: 200, icon: '🌇' },
+
+  // --- GIAO DỊCH (MARKET) ---
+  { id: 'market_buy_1', title: 'Khách hàng tiềm năng', description: 'Mua 1 Animon từ chợ.', rewardCoins: 100, icon: '🛒' },
+  { id: 'market_buy_10', title: 'Đại gia mua sắm', description: 'Mua 10 Animon từ chợ.', rewardCoins: 500, icon: '🛍️' },
+  { id: 'market_buy_50', title: 'Chuyên gia săn sale', description: 'Mua 50 Animon từ chợ.', rewardCoins: 2000, icon: '🎁' },
+  { id: 'market_sell_1', title: 'Tiểu thương', description: 'Bán thành công 1 Animon trên chợ.', rewardCoins: 100, icon: '🏪' },
+  { id: 'market_sell_10', title: 'Thương nhân lão luyện', description: 'Bán thành công 10 Animon trên chợ.', rewardCoins: 500, icon: '🤝' },
+  { id: 'market_sell_50', title: 'Tập đoàn thương mại', description: 'Bán thành công 50 Animon trên chợ.', rewardCoins: 2000, icon: '🏢' },
+
+  // --- XẾP HẠNG (RANK) ---
+  { id: 'rank_silver', title: 'Bước ngoặt đầu tiên', description: 'Đạt mốc Rank Bạc (100 RP).', rewardCoins: 500, icon: '🥈' },
+  { id: 'rank_gold', title: 'Ánh sáng hoàng kim', description: 'Đạt mốc Rank Vàng (300 RP).', rewardCoins: 1500, icon: '🏆' },
+  { id: 'rank_platinum', title: 'Đẳng cấp tinh anh', description: 'Đạt mốc Rank Bạch Kim (600 RP).', rewardCoins: 5000, icon: '💠' },
+  { id: 'rank_diamond', title: 'Vị thần võ thuật', description: 'Đạt mốc Rank Kim Cương (1000 RP).', rewardCoins: 20000, icon: '💎' },
+
+  // --- LỰC CHIẾN (POWER) ---
+  { id: 'power_1000', title: 'Sức mạnh thức tỉnh', description: 'Tổng lực chiến đạt 1,000 Power.', rewardCoins: 500, icon: '💪' },
+  { id: 'power_5000', title: 'Kẻ hủy diệt', description: 'Tổng lực chiến đạt 5,000 Power.', rewardCoins: 2000, icon: '🌋' },
+  { id: 'power_10000', title: 'Chiến thần', description: 'Tổng lực chiến đạt 10,000 Power.', rewardCoins: 10000, icon: '⚡' },
+  
+  // --- THỜI GIAN (LOGIN) ---
+  { id: 'login_streak_3', title: 'Thực tập sinh', description: 'Đăng nhập 3 ngày liên tiếp.', rewardCoins: 300, icon: '📅' },
+  { id: 'login_streak_7', title: 'Nghiện bắt thú', description: 'Đăng nhập 7 ngày liên tiếp.', rewardCoins: 1000, icon: '🗓️' },
+  { id: 'login_streak_30', title: 'Fan cuồng đích thực', description: 'Đăng nhập 30 ngày liên tiếp.', rewardCoins: 10000, icon: '♾️' },
 ];

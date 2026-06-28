@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { useGameStore } from '../store/useGameStore';
 import { Map as MapIcon, Compass } from 'lucide-react';
 import { DECORATIONS } from '../constants/decorations';
+import { useTimeOfDay } from '../hooks/useTimeOfDay';
 
 // Fix for default marker icon in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -44,7 +45,13 @@ const createCustomIcon = (imageUrl: string) => {
 
 function ChangeView({ center }: { center: [number, number] }) {
   const map = useMap();
-  map.setView(center, map.getZoom());
+  useEffect(() => {
+    map.flyTo(center, 16, {
+      animate: true,
+      duration: 1.5,
+      easeLinearity: 0.25
+    });
+  }, [center, map]);
   return null;
 }
 
@@ -55,6 +62,7 @@ export const MapTab: React.FC = () => {
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
+  const timeOfDay = useTimeOfDay();
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -115,15 +123,15 @@ export const MapTab: React.FC = () => {
                 (pos) => {
                   const latlng: [number, number] = [pos.coords.latitude, pos.coords.longitude];
                   setCurrentPosition(latlng);
-                  if (map) map.flyTo(latlng, 18, { duration: 1.5 });
+                  if (map) map.flyTo(latlng, 17, { duration: 1.5 });
                 },
                 () => {
-                  if (map && currentPosition) map.flyTo(currentPosition, 18, { duration: 1.5 });
+                  if (map && currentPosition) map.flyTo(currentPosition, 17, { duration: 1.5 });
                 },
                 { enableHighAccuracy: true }
               );
             } else if (map && currentPosition) {
-              map.flyTo(currentPosition, 18, { duration: 1.5 });
+              map.flyTo(currentPosition, 17, { duration: 1.5 });
             }
           }}
           className="bg-white/90 p-3 rounded-xl shadow-lg border-2 border-indigo-100 text-indigo-500 pointer-events-auto hover:bg-indigo-50 transition-colors cursor-pointer"
@@ -141,14 +149,24 @@ export const MapTab: React.FC = () => {
       <MapContainer 
         ref={setMap}
         center={centerPosition as [number, number]} 
-        zoom={18} 
-        style={{ height: '100%', width: '100%', zIndex: 1 }}
+        zoom={16} 
+        style={{ 
+          height: '100%', 
+          width: '100%', 
+          zIndex: 1,
+          filter: timeOfDay === 'dusk' ? 'sepia(50%) hue-rotate(-15deg) contrast(1.1)' : 
+                  timeOfDay === 'dawn' ? 'sepia(20%) hue-rotate(15deg) brightness(1.1)' : 'none'
+        }}
         zoomControl={false}
       >
         <ChangeView center={centerPosition as [number, number]} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+          url={
+            timeOfDay === 'night' 
+              ? "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+              : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+          }
         />
         
         {/* User Current Position */}

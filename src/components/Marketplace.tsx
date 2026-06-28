@@ -4,9 +4,10 @@ import { Card } from './Card';
 import { Coins, Store, RefreshCw, PlusCircle, X, TrendingUp, TrendingDown, Minus, Sparkles, Gem, ShoppingBag, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DECORATIONS } from '../constants/decorations';
+import { getRankInfo } from '../utils/rank';
 
 export const Marketplace: React.FC = () => {
-  const { marketplace, fetchMarketplace, buyAnimon, listAnimonForSale, user, coins, inventory, unlockedItems, buyDecoration, equipDecoration, equippedFrame, equippedBackground, equippedTitle, equippedMarker } = useGameStore();
+  const { marketplace, fetchMarketplace, buyAnimon, listAnimonForSale, user, coins, rank_points, inventory, unlockedItems, buyDecoration, equipDecoration, equippedFrame, equippedBackground, equippedTitle, equippedMarker } = useGameStore();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'market' | 'shop'>('market');
   
@@ -341,6 +342,11 @@ export const Marketplace: React.FC = () => {
                          item.type === 'background' ? 'Nền Showcase' : 
                          item.type === 'title' ? 'Danh Hiệu' : 'Biểu Tượng Map'}
                       </span>
+                      {item.requiredRankRP && (
+                        <div className="mt-2 text-xs font-bold text-stone-400">
+                          Yêu cầu: <span className={getRankInfo(item.requiredRankRP).colorClass}>{getRankInfo(item.requiredRankRP).name}</span>
+                        </div>
+                      )}
                     </div>
                     {item.type === 'frame' ? (
                       <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center shrink-0 ml-4 relative">
@@ -384,6 +390,13 @@ export const Marketplace: React.FC = () => {
                       className="w-full py-3 bg-stone-800 text-white font-bold rounded-2xl border-2 border-stone-800 hover:bg-stone-700 hover:-translate-y-1 transition-all"
                     >
                       Trang bị
+                    </button>
+                  ) : item.requiredRankRP && rank_points < item.requiredRankRP ? (
+                    <button
+                      disabled
+                      className="w-full py-3 bg-stone-100 text-stone-400 font-bold rounded-2xl border-2 border-stone-200 cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      Chưa đủ Rank
                     </button>
                   ) : (
                     <button

@@ -39,7 +39,7 @@ export interface FriendRequest {
 export interface LeaderboardUser {
   id: string;
   username: string;
-  rank_points: number;
+  score: number;
 }
 
 export interface MatchHistoryEntry {
@@ -62,7 +62,9 @@ interface GameState {
   friendRequests: FriendRequest[];
   coins: number;
   rank_points: number;
-  leaderboard: LeaderboardUser[];
+  leaderboardWealth: LeaderboardUser[];
+  leaderboardCollector: LeaderboardUser[];
+  leaderboardPower: LeaderboardUser[];
   matchHistory: MatchHistoryEntry[];
   isLoading: boolean;
   
@@ -113,7 +115,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   friendRequests: [],
   coins: 0,
   rank_points: 0,
-  leaderboard: [],
+  leaderboardWealth: [],
+  leaderboardCollector: [],
+  leaderboardPower: [],
   matchHistory: [],
   isLoading: true,
   unlockedAchievements: [],
@@ -340,15 +344,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   fetchLeaderboard: async () => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, rank_points')
-      .order('rank_points', { ascending: false })
-      .limit(50);
+    const [wealthRes, collectorRes, powerRes] = await Promise.all([
+      supabase.from('top_wealth').select('*'),
+      supabase.from('top_collectors').select('*'),
+      supabase.from('top_power').select('*')
+    ]);
 
-    if (data && !error) {
-      set({ leaderboard: data });
-    }
+    set({ 
+      leaderboardWealth: wealthRes.data || [],
+      leaderboardCollector: collectorRes.data || [],
+      leaderboardPower: powerRes.data || []
+    });
   },
 
   fetchMatchHistory: async () => {
@@ -589,7 +595,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ session: null, user: null, inventory: [], coins: 0, rank_points: 0, username: null, leaderboard: [], matchHistory: [] });
+    set({ session: null, user: null, inventory: [], coins: 0, rank_points: 0, username: null, leaderboardWealth: [], leaderboardCollector: [], leaderboardPower: [], matchHistory: [] });
   },
   
   fetchAchievements: async () => {
